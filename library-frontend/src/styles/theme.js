@@ -1,9 +1,5 @@
 import { createTheme } from '@mui/material/styles';
 
-/**
- * Thème personnalisé pour l'application Library Management
- * Couleurs principales: #2C3E50 (bleu foncé) et gris clair
- */
 const theme = createTheme({
   breakpoints: {
     values: {
@@ -103,6 +99,26 @@ const theme = createTheme({
     ...Array(19).fill('0px 20px 40px rgba(44, 62, 80, 0.2)'),
   ],
   components: {
+    MuiCssBaseline: {
+      styleOverrides: {
+        body: {
+          margin: 0,
+          padding: 0,
+          overflowX: 'hidden',
+          width: '100%',
+        },
+        html: {
+          margin: 0,
+          padding: 0,
+          width: '100%',
+        },
+        '#root': {
+          margin: 0,
+          padding: 0,
+          width: '100%',
+        },
+      },
+    },
     MuiButton: {
       styleOverrides: {
         root: {
