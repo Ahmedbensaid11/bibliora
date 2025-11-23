@@ -1,0 +1,9 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Vos styles globaux */
+body {
+  background-color: #fdfbf7; /* Couleur "Stone-50" pour le fond papier */
+  color: #292524; /* Couleur "Stone-800" pour le texte */
+}
