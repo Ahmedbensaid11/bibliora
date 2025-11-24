@@ -20,7 +20,7 @@ import {
 import {
   Visibility,
   VisibilityOff,
-  Email,
+  Person,
   Lock,
   Login as LoginIcon,
   AutoStories,
@@ -37,7 +37,7 @@ const Login = () => {
   const { login, isLoading } = useAuthStore();
 
   const [formData, setFormData] = useState({
-    email: '',
+    usernameOrEmail: '',
     password: '',
     rememberMe: false,
   });
@@ -59,10 +59,8 @@ const Login = () => {
   const validate = () => {
     const newErrors = {};
     
-    if (!formData.email) {
-      newErrors.email = 'L\'email est requis';
-    } else if (!/\S+@\S+\.\S+/.test(formData.email)) {
-      newErrors.email = 'Email invalide';
+    if (!formData.usernameOrEmail) {
+      newErrors.usernameOrEmail = 'Le nom d\'utilisateur ou l\'email est requis';
     }
 
     if (!formData.password) {
@@ -82,10 +80,10 @@ const Login = () => {
 
     try {
       await login({
-        email: formData.email,
+        email: formData.usernameOrEmail, // This will be transformed to usernameOrEmail in authService
         password: formData.password,
       });
-      navigate('/dashboard');
+      navigate('/home');
     } catch (error) {
       console.error('Login error:', error);
     }
@@ -350,18 +348,19 @@ const Login = () => {
                 <form onSubmit={handleSubmit}>
                   <TextField
                     fullWidth
-                    label="Email"
-                    name="email"
-                    type="email"
-                    value={formData.email}
+                    label="Nom d'utilisateur ou Email"
+                    name="usernameOrEmail"
+                    type="text"
+                    value={formData.usernameOrEmail}
                     onChange={handleChange}
-                    error={!!errors.email}
-                    helperText={errors.email}
+                    error={!!errors.usernameOrEmail}
+                    helperText={errors.usernameOrEmail}
                     margin="normal"
+                    placeholder="Entrez votre nom d'utilisateur ou email"
                     InputProps={{
                       startAdornment: (
                         <InputAdornment position="start">
-                          <Email color="primary" />
+                          <Person color="primary" />
                         </InputAdornment>
                       ),
                     }}

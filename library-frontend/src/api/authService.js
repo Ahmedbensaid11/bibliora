@@ -1,8 +1,5 @@
 import axiosInstance from './axios.config';
 
-/**
- * Service pour gérer l'authentification
- */
 const authService = {
   /**
    * Connexion de l'utilisateur
@@ -10,58 +7,79 @@ const authService = {
    * @returns {Promise} Token et informations utilisateur
    */
   login: async (credentials) => {
-    const response = await axiosInstance.post('/auth/login', credentials);
+    // Transform the credentials to match backend format
+    const loginData = {
+      usernameOrEmail: credentials.email,  // Backend expects 'usernameOrEmail'
+      password: credentials.password
+    };
     
-    if (response.data.token) {
-      localStorage.setItem('token', response.data.token);
-      localStorage.setItem('user', JSON.stringify(response.data.user));
+    const response = await axiosInstance.post('/auth/login', loginData);
+    
+    // Backend returns: accessToken, refreshToken, userId, username, email, roles
+    if (response.data.accessToken) {
+      localStorage.setItem('token', response.data.accessToken);
+      localStorage.setItem('refreshToken', response.data.refreshToken);
+      
+      // Create user object from response
+      const user = {
+        id: response.data.userId,
+        username: response.data.username,
+        email: response.data.email,
+        roles: response.data.roles,
+      };
+      
+      localStorage.setItem('user', JSON.stringify(user));
     }
     
     return response.data;
   },
 
-  /**
-   * Inscription d'un nouvel utilisateur
-   * @param {Object} userData - Données de l'utilisateur
-   * @returns {Promise} Confirmation d'inscription
-   */
   register: async (userData) => {
     const response = await axiosInstance.post('/auth/register', userData);
     return response.data;
   },
 
   /**
-   * Déconnexion de l'utilisateur
+   * Déconnexion de l'utilisateur avec appel API
+   * @returns {Promise} Réponse de l'API
    */
-  logout: () => {
-    localStorage.removeItem('token');
-    localStorage.removeItem('user');
+  logout: async () => {
+    try {
+      // Appel API de déconnexion
+      const response = await axiosInstance.post('/auth/logout');
+      return response.data;
+    } catch (error) {
+      // Même en cas d'erreur, on nettoie le localStorage
+      console.error('Logout API error:', error);
+      throw error;
+    } finally {
+      // Toujours nettoyer le localStorage, même si l'API échoue
+      localStorage.removeItem('token');
+      localStorage.removeItem('refreshToken');
+      localStorage.removeItem('user');
+    }
   },
 
   /**
-   * Récupération du mot de passe
-   * @param {string} email - Email de l'utilisateur
-   * @returns {Promise} Confirmation d'envoi
+   * Déconnexion silencieuse (sans appel API)
+   * Pour les cas où le token est expiré ou invalide
    */
+  silentLogout: () => {
+    localStorage.removeItem('token');
+    localStorage.removeItem('refreshToken');
+    localStorage.removeItem('user');
+  },
+
   forgotPassword: async (email) => {
     const response = await axiosInstance.post('/auth/forgot-password', { email });
     return response.data;
   },
 
-  /**
-   * Réinitialisation du mot de passe
-   * @param {Object} data - { token, newPassword }
-   * @returns {Promise} Confirmation de réinitialisation
-   */
   resetPassword: async (data) => {
     const response = await axiosInstance.post('/auth/reset-password', data);
     return response.data;
   },
 
-  /**
-   * Vérification de la validité du token
-   * @returns {Promise<boolean>} True si le token est valide
-   */
   verifyToken: async () => {
     try {
       const response = await axiosInstance.get('/auth/verify');
@@ -71,27 +89,15 @@ const authService = {
     }
   },
 
-  /**
-   * Récupération de l'utilisateur courant depuis le localStorage
-   * @returns {Object|null} Utilisateur ou null
-   */
   getCurrentUser: () => {
     const userStr = localStorage.getItem('user');
     return userStr ? JSON.parse(userStr) : null;
   },
 
-  /**
-   * Récupération du token depuis le localStorage
-   * @returns {string|null} Token ou null
-   */
   getToken: () => {
     return localStorage.getItem('token');
   },
 
-  /**
-   * Vérification si l'utilisateur est connecté
-   * @returns {boolean} True si connecté
-   */
   isAuthenticated: () => {
     return !!localStorage.getItem('token');
   },

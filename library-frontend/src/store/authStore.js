@@ -2,31 +2,34 @@ import { create } from 'zustand';
 import authService from '../api/authService';
 import { toast } from 'react-toastify';
 
-/**
- * Store Zustand pour gérer l'état d'authentification
- */
 const useAuthStore = create((set, get) => ({
-  // État
   user: authService.getCurrentUser(),
   token: authService.getToken(),
   isAuthenticated: authService.isAuthenticated(),
   isLoading: false,
   error: null,
 
-  /**
-   * Connexion de l'utilisateur
-   */
   login: async (credentials) => {
     set({ isLoading: true, error: null });
     try {
       const data = await authService.login(credentials);
+      
+      // Extract user info from response
+      const user = {
+        id: data.userId,
+        username: data.username,
+        email: data.email,
+        roles: data.roles,
+      };
+      
       set({
-        user: data.user,
-        token: data.token,
+        user: user,
+        token: data.accessToken,
         isAuthenticated: true,
         isLoading: false,
       });
-      toast.success(`Bienvenue ${data.user.firstName} !`);
+      
+      toast.success(`Bienvenue ${data.username} !`);
       return data;
     } catch (error) {
       set({ 
@@ -37,9 +40,6 @@ const useAuthStore = create((set, get) => ({
     }
   },
 
-  /**
-   * Inscription d'un nouvel utilisateur
-   */
   register: async (userData) => {
     set({ isLoading: true, error: null });
     try {
@@ -57,22 +57,48 @@ const useAuthStore = create((set, get) => ({
   },
 
   /**
-   * Déconnexion de l'utilisateur
+   * Déconnexion avec appel API
    */
-  logout: () => {
-    authService.logout();
+  logout: async () => {
+    set({ isLoading: true });
+    try {
+      const data = await authService.logout();
+      set({
+        user: null,
+        token: null,
+        isAuthenticated: false,
+        error: null,
+        isLoading: false,
+      });
+      toast.success(data?.message || 'Déconnexion réussie');
+      return data;
+    } catch (error) {
+      // Même en cas d'erreur API, on nettoie l'état local
+      set({
+        user: null,
+        token: null,
+        isAuthenticated: false,
+        error: null,
+        isLoading: false,
+      });
+      toast.info('Déconnecté de l\'application');
+      throw error;
+    }
+  },
+
+  /**
+   * Déconnexion silencieuse (pour les tokens expirés)
+   */
+  silentLogout: () => {
+    authService.silentLogout();
     set({
       user: null,
       token: null,
       isAuthenticated: false,
       error: null,
     });
-    toast.info('Vous êtes déconnecté');
   },
 
-  /**
-   * Récupération du mot de passe
-   */
   forgotPassword: async (email) => {
     set({ isLoading: true, error: null });
     try {
@@ -89,9 +115,6 @@ const useAuthStore = create((set, get) => ({
     }
   },
 
-  /**
-   * Réinitialisation du mot de passe
-   */
   resetPassword: async (data) => {
     set({ isLoading: true, error: null });
     try {
@@ -108,20 +131,19 @@ const useAuthStore = create((set, get) => ({
     }
   },
 
-  /**
-   * Vérification du token
-   */
   verifyToken: async () => {
-    const isValid = await authService.verifyToken();
-    if (!isValid) {
-      get().logout();
+    try {
+      const isValid = await authService.verifyToken();
+      if (!isValid) {
+        get().silentLogout();
+      }
+      return isValid;
+    } catch (error) {
+      get().silentLogout();
+      return false;
     }
-    return isValid;
   },
 
-  /**
-   * Réinitialisation des erreurs
-   */
   clearError: () => set({ error: null }),
 }));
 
