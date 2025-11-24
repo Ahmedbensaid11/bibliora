@@ -1,0 +1,57 @@
+id,name,description,parent_id,active
+1,Fiction,,,True
+2,Capitalism,,,True
+3,Juvenile Fiction,,,True
+4,Poetry,,,True
+5,Drama,,,True
+6,Men,,,True
+7,Science fiction,,,True
+8,Fantasy,,,True
+9,Drenai (Imaginary place),,,True
+10,"Animals, Mythical",,,True
+11,Discworld (Imaginary place),,,True
+12,Animals,,,True
+13,Fairy tales,,,True
+14,Young Adult Fiction,,,True
+15,Comics & Graphic Novels,,,True
+16,Literary Criticism,,,True
+17,London (England),,,True
+18,Botswana,,,True
+19,Christmas stories,,,True
+20,Crime investigations,,,True
+21,"Beresford, Tommy (Fictitious character)",,,True
+22,English drama,,,True
+23,"Poirot, Hercule (Fictitious character)",,,True
+24,Abused wives,,,True
+25,Biography & Autobiography,,,True
+26,Philosophy,,,True
+27,Pets,,,True
+28,Psychology,,,True
+29,Self-Help,,,True
+30,Language Arts & Disciplines,,,True
+31,Social Science,,,True
+32,Art,,,True
+33,Religion,,,True
+34,History,,,True
+35,Beowulf,,,True
+36,Political Science,,,True
+37,Health & Fitness,,,True
+38,Gardening,,,True
+39,Sports & Recreation,,,True
+40,Auschwitz (Poland : Concentration camp),,,True
+41,Nature,,,True
+42,Business & Economics,,,True
+43,Law,,,True
+44,Literary Collections,,,True
+45,Education,,,True
+46,"Theology, Doctrinal",,,True
+47,"Body, Mind & Spirit",,,True
+48,Human-alien encounters,,,True
+49,Identity (Psychology),,,True
+50,Detective and mystery stories,,,True
+51,Science,,,True
+52,Bullying,,,True
+53,Friendship,,,True
+54,Blind,,,True
+55,Adolescence,,,True
+56,Death,,,True

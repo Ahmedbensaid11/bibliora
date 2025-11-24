@@ -6,6 +6,7 @@ import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
 
 import java.time.LocalDateTime;
+import java.util.Date;
 import java.util.Set;
 import java.util.HashSet;
 
@@ -39,7 +40,17 @@ public class Book {
 
     @Column(name = "publication_year")
     private Integer publicationYear;
+    @Column(name = "cover_url", length = 500)
+    private String coverUrl;
 
+    @Column(name = "number_of_pages")
+    private Integer numberOfPages;
+
+    @Column(name = "price")
+    private Double price;
+
+    @Column(length = 50)
+    private String language;
     @Column(length = 100)
     private String genre;
 
@@ -119,6 +130,7 @@ public class Book {
     public boolean isAvailable() {
         return status == BookStatus.AVAILABLE && availableCopies > 0;
     }
+
     public void clearCategories() {
         if (categories != null) {
             for (Category category : categories) {
