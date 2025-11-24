@@ -1,5 +1,4 @@
 import { createBrowserRouter, Navigate } from 'react-router-dom';
-import { Container, Typography, Paper } from '@mui/material';
 import Login from '../pages/auth/Login';
 import Register from '../pages/auth/Register';
 import MainLayout from '../components/layout/MainLayout';
@@ -9,6 +8,9 @@ import Catalogue from '../pages/catalogue/Catalogue';
 import MesEmprunts from '../pages/emprunts/MesEmprunts';
 import Dashboard from '../pages/dashboard/Dashboard';
 import Historique from '../pages/historique/Historique';
+import Home from '../pages/home/home';
+import About from '../pages/about/About';
+import Contact from '../pages/contact/Contact';
 
 const ProtectedRoute = ({ children }) => {
   const { isAuthenticated } = useAuthStore();
@@ -24,33 +26,16 @@ const PublicRoute = ({ children }) => {
   const { isAuthenticated } = useAuthStore();
   
   if (isAuthenticated) {
-    return <Navigate to="/dashboard" replace />;
+    return <Navigate to="/home" replace />; // Changed from /dashboard to /home
   }
   
   return children;
 };
 
-// Page components
-const HistoriquePage = () => (
-  <Container maxWidth="xl">
-    <Typography variant="h4" gutterBottom fontWeight="bold" sx={{ mb: 1 }}>
-      Historique
-    </Typography>
-    <Typography variant="body1" color="text.secondary" sx={{ mb: 3 }}>
-      Consultez votre historique d'emprunts
-    </Typography>
-    <Paper sx={{ p: 3, minHeight: 400 }}>
-      <Typography variant="body2" color="text.secondary">
-        Votre historique à venir...
-      </Typography>
-    </Paper>
-  </Container>
-);
-
 const router = createBrowserRouter([
   {
     path: '/',
-    element: <Navigate to="/login" replace />,
+    element: <Navigate to="/home" replace />, // Changed to /home
   },
   {
     path: '/login',
@@ -76,6 +61,10 @@ const router = createBrowserRouter([
     ),
     children: [
       {
+        path: '/home',
+        element: <Home />,
+      },
+      {
         path: '/dashboard',
         element: <Dashboard />,
       },
@@ -92,6 +81,14 @@ const router = createBrowserRouter([
         element: <Historique />,
       },
       {
+        path: '/about',
+        element: <About />,
+      },
+      {
+        path: '/contact',
+        element: <Contact />,
+      },
+      {
         path: '/profile',
         element: <Profile />,
       },
@@ -99,7 +96,7 @@ const router = createBrowserRouter([
   },
   {
     path: '*',
-    element: <Navigate to="/login" replace />,
+    element: <Navigate to="/home" replace />, // Changed to /home
   },
 ]);
 
