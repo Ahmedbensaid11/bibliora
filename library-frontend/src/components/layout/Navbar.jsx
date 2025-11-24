@@ -33,7 +33,10 @@ import {
   AccountCircle,
   Settings,
   Logout,
-  Close
+  Close,
+  Info,
+  Email,
+  Dashboard as DashboardIcon
 } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 import useAuthStore from '../../store/authStore';
@@ -48,10 +51,12 @@ const Navbar = () => {
   const navigate = useNavigate();
 
   const navItems = [
-    { label: 'Accueil', icon: <Home fontSize="small" />, path: '/dashboard' },
-    { label: 'Catalogue', icon: <LibraryBooks fontSize="small" />, path: '/catalogue' },
+    { label: 'Accueil', icon: <Home fontSize="small" />, path: '/home' },
+    { label: 'Livres', icon: <LibraryBooks fontSize="small" />, path: '/catalogue' },
     { label: 'Mes Emprunts', icon: <Bookmark fontSize="small" />, path: '/emprunts' },
     { label: 'Historique', icon: <History fontSize="small" />, path: '/historique' },
+    { label: 'À propos', icon: <Info fontSize="small" />, path: '/about' },
+    { label: 'Contact', icon: <Email fontSize="small" />, path: '/contact' },
   ];
 
   const notifications = [
@@ -166,15 +171,15 @@ const Navbar = () => {
               <MenuIcon />
             </IconButton>
 
-            <Box 
-              sx={{ 
-                display: 'flex', 
-                alignItems: 'center', 
+            <Box
+              sx={{
+                display: 'flex',
+                alignItems: 'center',
                 gap: 1.5,
                 cursor: 'pointer',
                 mr: 5
               }}
-              onClick={() => navigate('/dashboard')}
+              onClick={() => navigate('/home')}
             >
               <LibraryBooks sx={{ fontSize: 32 }} />
               <Typography
@@ -404,10 +409,10 @@ const Navbar = () => {
                 </Typography>
               </Box>
               <Divider />
-              <MenuItem 
+              <MenuItem
                 onClick={handleProfileClick}
-                sx={{ 
-                  py: 1.5, 
+                sx={{
+                  py: 1.5,
                   px: 2.5,
                   '&:hover': { bgcolor: '#f8f9fa' }
                 }}
@@ -417,10 +422,26 @@ const Navbar = () => {
                 </ListItemIcon>
                 <Typography variant="body2">Mon Profil</Typography>
               </MenuItem>
-              <MenuItem 
-                onClick={handleCloseUserMenu} 
-                sx={{ 
-                  py: 1.5, 
+              <MenuItem
+                onClick={() => {
+                  handleCloseUserMenu();
+                  navigate('/dashboard');
+                }}
+                sx={{
+                  py: 1.5,
+                  px: 2.5,
+                  '&:hover': { bgcolor: '#f8f9fa' }
+                }}
+              >
+                <ListItemIcon>
+                  <DashboardIcon fontSize="small" sx={{ color: '#3D5467' }} />
+                </ListItemIcon>
+                <Typography variant="body2">Tableau de Bord</Typography>
+              </MenuItem>
+              <MenuItem
+                onClick={handleCloseUserMenu}
+                sx={{
+                  py: 1.5,
                   px: 2.5,
                   '&:hover': { bgcolor: '#f8f9fa' }
                 }}

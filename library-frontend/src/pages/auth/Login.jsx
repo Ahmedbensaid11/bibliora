@@ -83,7 +83,7 @@ const Login = () => {
         email: formData.usernameOrEmail, // This will be transformed to usernameOrEmail in authService
         password: formData.password,
       });
-      navigate('/dashboard');
+      navigate('/home');
     } catch (error) {
       console.error('Login error:', error);
     }
