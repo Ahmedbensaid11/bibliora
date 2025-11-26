@@ -162,62 +162,111 @@ const Catalogue = () => {
     console.log('Réserver le livre:', bookId);
   };
 
-  const getStatusColor = (available, availableCopies) => {
-    if (!available) return theme.palette.error.main;
-    if (availableCopies === 0) return theme.palette.warning.main;
-    return theme.palette.success.main;
-  };
-
   const getStatusText = (available, availableCopies) => {
-    if (!available) return "Indisponible";
+    if (!available) return "Épuisé";
     if (availableCopies === 0) return "Réservé";
     return "Disponible";
   };
 
   return (
     <Container maxWidth="xl" sx={{ py: 4, mt: 8 }}>
-      {/* En-tête */}
-      <Box sx={{ mb: 4 }}>
-        <Typography variant="h3" component="h1" sx={{ 
-          fontWeight: 700,
-          background: `linear-gradient(135deg, ${theme.palette.primary.main} 0%, ${theme.palette.primary.light} 100%)`,
-          backgroundClip: 'text',
-          WebkitBackgroundClip: 'text',
-          color: 'transparent',
-          mb: 1
-        }}>
-          Catalogue des Livres
-        </Typography>
-        <Typography variant="h6" color="text.secondary">
-          Découvrez notre collection complète de livres
-        </Typography>
+      {/* En-tête avec style vintage */}
+      <Box sx={{ 
+        mb: 4,
+        pb: 3,
+        borderBottom: '1px solid #e7e5e4'
+      }}>
+        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', flexWrap: 'wrap', gap: 2 }}>
+          <Box>
+            <Typography variant="h3" component="h1" sx={{ 
+              fontFamily: 'Georgia, serif',
+              fontWeight: 700,
+              color: '#451a03',
+              mb: 1
+            }}>
+              Le Catalogue
+            </Typography>
+            <Typography variant="h6" sx={{
+              color: '#78716c',
+              fontStyle: 'italic',
+              fontWeight: 300,
+              fontFamily: 'Georgia, serif'
+            }}>
+              Découvrez notre collection complète de livres
+            </Typography>
+          </Box>
+          <Typography variant="body2" sx={{
+            color: '#78716c',
+            fontFamily: 'monospace'
+          }}>
+            Affichage {((currentPage - 1) * itemsPerPage) + 1}-{Math.min(currentPage * itemsPerPage, filteredBooks.length)} sur {filteredBooks.length} résultats
+          </Typography>
+        </Box>
       </Box>
 
       {/* Barre de recherche et filtres */}
-      <Card sx={{ mb: 4, p: 3 }}>
+      <Card sx={{ 
+        mb: 4, 
+        p: 3,
+        bgcolor: '#ffffff',
+        boxShadow: '0 1px 3px 0 rgb(0 0 0 / 0.1)',
+        border: '1px solid #e7e5e4',
+        borderRadius: '2px'
+      }}>
         <Grid container spacing={3} alignItems="center">
           <Grid item xs={12} md={6}>
             <TextField
               fullWidth
               placeholder="Rechercher par titre, auteur ou ISBN..."
               value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
+              onChange={(e) => {
+                setSearchTerm(e.target.value);
+                setCurrentPage(1);
+              }}
               InputProps={{
                 startAdornment: (
                   <InputAdornment position="start">
-                    <Search color="primary" />
+                    <Search sx={{ color: '#a8a29e' }} />
                   </InputAdornment>
                 ),
+                sx: {
+                  bgcolor: '#fdfbf7',
+                  '& .MuiOutlinedInput-notchedOutline': {
+                    borderColor: '#d6d3d1',
+                  },
+                  '&:hover .MuiOutlinedInput-notchedOutline': {
+                    borderColor: '#d97706',
+                  },
+                  '&.Mui-focused .MuiOutlinedInput-notchedOutline': {
+                    borderColor: '#d97706',
+                  }
+                }
               }}
             />
           </Grid>
-          <Grid item xs={12} md={2}>
+          <Grid item xs={12} md={3}>
             <FormControl fullWidth>
               <InputLabel>Genre</InputLabel>
               <Select
                 value={selectedGenre}
                 label="Genre"
-                onChange={(e) => setSelectedGenre(e.target.value)}
+                onChange={(e) => {
+                  setSelectedGenre(e.target.value);
+                  setCurrentPage(1);
+                }}
+                sx={{
+                  bgcolor: '#fdfbf7',
+                  fontFamily: 'Georgia, serif',
+                  '& .MuiOutlinedInput-notchedOutline': {
+                    borderColor: '#d6d3d1',
+                  },
+                  '&:hover .MuiOutlinedInput-notchedOutline': {
+                    borderColor: '#d97706',
+                  },
+                  '&.Mui-focused .MuiOutlinedInput-notchedOutline': {
+                    borderColor: '#d97706',
+                  }
+                }}
               >
                 <MenuItem value="">Tous les genres</MenuItem>
                 {genres.map((genre) => (
@@ -226,13 +275,29 @@ const Catalogue = () => {
               </Select>
             </FormControl>
           </Grid>
-          <Grid item xs={12} md={2}>
+          <Grid item xs={12} md={3}>
             <FormControl fullWidth>
               <InputLabel>Statut</InputLabel>
               <Select
                 value={selectedStatus}
                 label="Statut"
-                onChange={(e) => setSelectedStatus(e.target.value)}
+                onChange={(e) => {
+                  setSelectedStatus(e.target.value);
+                  setCurrentPage(1);
+                }}
+                sx={{
+                  bgcolor: '#fdfbf7',
+                  fontFamily: 'Georgia, serif',
+                  '& .MuiOutlinedInput-notchedOutline': {
+                    borderColor: '#d6d3d1',
+                  },
+                  '&:hover .MuiOutlinedInput-notchedOutline': {
+                    borderColor: '#d97706',
+                  },
+                  '&.Mui-focused .MuiOutlinedInput-notchedOutline': {
+                    borderColor: '#d97706',
+                  }
+                }}
               >
                 <MenuItem value="">Tous</MenuItem>
                 <MenuItem value="available">Disponible</MenuItem>
@@ -240,95 +305,182 @@ const Catalogue = () => {
               </Select>
             </FormControl>
           </Grid>
-          <Grid item xs={12} md={2}>
-            <Box sx={{ display: 'flex', gap: 1, justifyContent: 'flex-end' }}>
-              <IconButton 
-                onClick={() => setViewMode('grid')}
-                color={viewMode === 'grid' ? 'primary' : 'default'}
-              >
-                <ViewModule />
-              </IconButton>
-              <IconButton 
-                onClick={() => setViewMode('list')}
-                color={viewMode === 'list' ? 'primary' : 'default'}
-              >
-                <ViewList />
-              </IconButton>
-            </Box>
-          </Grid>
         </Grid>
       </Card>
 
-      {/* Résultats */}
-      <Typography variant="h6" color="text.secondary" sx={{ mb: 2 }}>
-        {filteredBooks.length} livre(s) trouvé(s)
-      </Typography>
-
-      {/* Grille des livres */}
+      {/* Grille des livres avec style vintage */}
       {viewMode === 'grid' ? (
-        <Grid container spacing={3}>
+        <Grid container spacing={4}>
           {paginatedBooks.map((book) => (
             <Grid item xs={12} sm={6} md={4} lg={3} key={book.id}>
               <Card 
                 sx={{ 
                   height: '100%',
-                  cursor: 'pointer',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  bgcolor: '#ffffff',
+                  borderRadius: '2px',
+                  boxShadow: '0 1px 2px 0 rgb(0 0 0 / 0.05)',
+                  border: '1px solid #e7e5e4',
+                  overflow: 'hidden',
                   transition: 'all 0.3s ease',
                   '&:hover': {
-                    transform: 'translateY(-8px)',
-                    boxShadow: theme.shadows[8]
+                    boxShadow: '0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1)',
+                    borderColor: '#fde68a'
                   }
                 }}
-                onClick={() => setSelectedBook(book)}
               >
-                <CardMedia
-                  component="img"
-                  height="200"
-                  image={book.cover}
-                  alt={book.title}
-                  sx={{ objectFit: 'cover' }}
-                />
-                <CardContent>
-                  <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 1 }}>
-                    <Chip 
+                {/* Image Container avec overlay */}
+                <Box sx={{ position: 'relative', paddingTop: '150%', overflow: 'hidden', bgcolor: '#e7e5e4' }}>
+                  <CardMedia
+                    component="img"
+                    image={book.cover}
+                    alt={book.title}
+                    sx={{
+                      position: 'absolute',
+                      top: 0,
+                      left: 0,
+                      width: '100%',
+                      height: '100%',
+                      objectFit: 'cover',
+                      filter: 'sepia(0.15)'
+                    }}
+                  />
+                  {/* Hover Overlay */}
+                  <Box
+                    sx={{
+                      position: 'absolute',
+                      inset: 0,
+                      background: 'linear-gradient(to top, rgba(0,0,0,0.5) 0%, transparent 100%)',
+                      opacity: 0,
+                      transition: 'opacity 0.3s ease',
+                      '.MuiCard-root:hover &': {
+                        opacity: 1
+                      }
+                    }}
+                  />
+                  {/* Status Badge */}
+                  <Box sx={{ position: 'absolute', top: 12, right: 12 }}>
+                    <Chip
                       label={getStatusText(book.available, book.availableCopies)}
                       size="small"
                       sx={{
-                        bgcolor: getStatusColor(book.available, book.availableCopies),
-                        color: 'white',
-                        fontWeight: 600
+                        bgcolor: book.availableCopies > 0 ? '#f0fdf4' : '#fef2f2',
+                        color: book.availableCopies > 0 ? '#166534' : '#991b1b',
+                        border: book.availableCopies > 0 ? '1px solid #bbf7d0' : '1px solid #fecaca',
+                        fontWeight: 700,
+                        fontFamily: 'Georgia, serif',
+                        fontSize: '0.7rem',
+                        boxShadow: '0 1px 2px 0 rgb(0 0 0 / 0.05)'
                       }}
                     />
-                    <Rating value={book.rating} readOnly size="small" />
+                  </Box>
+                </Box>
+                
+                {/* Card Content */}
+                <CardContent sx={{ 
+                  flexGrow: 1, 
+                  display: 'flex', 
+                  flexDirection: 'column',
+                  bgcolor: '#fffcf5',
+                  p: 2.5
+                }}>
+                  {/* Genre Badge */}
+                  <Box sx={{ mb: 1 }}>
+                    <Typography
+                      variant="caption"
+                      sx={{
+                        color: '#b45309',
+                        fontWeight: 700,
+                        textTransform: 'uppercase',
+                        letterSpacing: '0.1em',
+                        fontSize: '0.65rem',
+                        borderBottom: '1px solid #fde68a',
+                        paddingBottom: '2px',
+                        display: 'inline-block'
+                      }}
+                    >
+                      {book.genre}
+                    </Typography>
                   </Box>
                   
-                  <Typography variant="h6" component="h3" sx={{ 
-                    fontWeight: 600,
-                    mb: 1,
-                    height: '48px',
-                    overflow: 'hidden',
-                    display: '-webkit-box',
-                    WebkitLineClamp: 2,
-                    WebkitBoxOrient: 'vertical'
-                  }}>
+                  {/* Title */}
+                  <Typography 
+                    variant="h6" 
+                    component="h3" 
+                    sx={{ 
+                      fontFamily: 'Georgia, serif',
+                      fontWeight: 700,
+                      color: '#1c1917',
+                      mb: 0.5,
+                      lineHeight: 1.3,
+                      fontSize: '1.15rem',
+                      display: '-webkit-box',
+                      WebkitLineClamp: 2,
+                      WebkitBoxOrient: 'vertical',
+                      overflow: 'hidden',
+                      minHeight: '2.6rem'
+                    }}
+                    title={book.title}
+                  >
                     {book.title}
                   </Typography>
                   
-                  <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+                  {/* Author */}
+                  <Typography 
+                    variant="body2" 
+                    sx={{ 
+                      color: '#78716c',
+                      mb: 2,
+                      fontStyle: 'italic',
+                      fontWeight: 500,
+                      fontSize: '0.875rem'
+                    }}
+                  >
                     {book.author}
                   </Typography>
                   
-                  <Typography variant="caption" color="text.secondary" display="block" sx={{ mb: 2 }}>
-                    {book.year} • {book.genre}
-                  </Typography>
-
-                  <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <Typography variant="body2" color="text.secondary">
-                      {book.availableCopies}/{book.totalCopies} exemplaires
+                  {/* Footer */}
+                  <Box sx={{ 
+                    mt: 'auto', 
+                    pt: 2, 
+                    borderTop: '1px solid #e7e5e4',
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center'
+                  }}>
+                    <Typography 
+                      variant="caption" 
+                      sx={{ 
+                        color: '#a8a29e',
+                        fontFamily: 'monospace',
+                        fontSize: '0.7rem'
+                      }}
+                    >
+                      {book.isbn}
                     </Typography>
-                    <IconButton size="small" color="primary">
-                      <Visibility />
-                    </IconButton>
+                    <Button
+                      size="small"
+                      onClick={() => setSelectedBook(book)}
+                      sx={{
+                        color: '#92400e',
+                        fontSize: '0.875rem',
+                        fontWeight: 700,
+                        fontFamily: 'Georgia, serif',
+                        textTransform: 'none',
+                        borderBottom: '1px solid transparent',
+                        borderRadius: 0,
+                        padding: '2px 4px',
+                        minWidth: 'auto',
+                        '&:hover': {
+                          bgcolor: 'transparent',
+                          borderBottom: '1px solid #d97706',
+                          color: '#d97706'
+                        }
+                      }}
+                    >
+                      Voir Détails
+                    </Button>
                   </Box>
                 </CardContent>
               </Card>
@@ -345,9 +497,13 @@ const Catalogue = () => {
                 p: 2,
                 cursor: 'pointer',
                 transition: 'all 0.2s ease',
+                bgcolor: '#ffffff',
+                border: '1px solid #e7e5e4',
+                borderRadius: '2px',
                 '&:hover': {
-                  bgcolor: 'action.hover',
-                  transform: 'translateX(4px)'
+                  bgcolor: '#fdfbf7',
+                  transform: 'translateX(4px)',
+                  borderColor: '#fde68a'
                 }
               }}
               onClick={() => setSelectedBook(book)}
@@ -359,14 +515,25 @@ const Catalogue = () => {
                     height="80"
                     image={book.cover}
                     alt={book.title}
-                    sx={{ objectFit: 'cover', borderRadius: 1 }}
+                    sx={{ 
+                      objectFit: 'cover', 
+                      borderRadius: '2px',
+                      filter: 'sepia(0.15)'
+                    }}
                   />
                 </Grid>
                 <Grid item xs={6} md={3}>
-                  <Typography variant="h6" fontWeight="600">
+                  <Typography variant="h6" sx={{ 
+                    fontWeight: 600,
+                    fontFamily: 'Georgia, serif',
+                    color: '#1c1917'
+                  }}>
                     {book.title}
                   </Typography>
-                  <Typography variant="body2" color="text.secondary">
+                  <Typography variant="body2" sx={{ 
+                    color: '#78716c',
+                    fontStyle: 'italic'
+                  }}>
                     {book.author}
                   </Typography>
                 </Grid>
@@ -374,11 +541,15 @@ const Catalogue = () => {
                   <Chip 
                     label={book.genre}
                     size="small"
-                    variant="outlined"
+                    sx={{
+                      bgcolor: '#fffcf5',
+                      border: '1px solid #e7e5e4',
+                      fontFamily: 'Georgia, serif'
+                    }}
                   />
                 </Grid>
                 <Grid item xs={4} md={2}>
-                  <Typography variant="body2">
+                  <Typography variant="body2" sx={{ fontFamily: 'monospace', color: '#78716c' }}>
                     ISBN: {book.isbn}
                   </Typography>
                 </Grid>
@@ -389,10 +560,10 @@ const Catalogue = () => {
                         width: 8,
                         height: 8,
                         borderRadius: '50%',
-                        bgcolor: getStatusColor(book.available, book.availableCopies)
+                        bgcolor: book.availableCopies > 0 ? '#166534' : '#991b1b'
                       }}
                     />
-                    <Typography variant="body2">
+                    <Typography variant="body2" sx={{ fontFamily: 'Georgia, serif' }}>
                       {getStatusText(book.available, book.availableCopies)}
                     </Typography>
                   </Box>
@@ -407,6 +578,14 @@ const Catalogue = () => {
                           e.stopPropagation();
                           handleBorrow(book.id);
                         }}
+                        sx={{
+                          bgcolor: '#78350f',
+                          fontFamily: 'Georgia, serif',
+                          textTransform: 'none',
+                          '&:hover': {
+                            bgcolor: '#92400e'
+                          }
+                        }}
                       >
                         Emprunter
                       </Button>
@@ -417,6 +596,16 @@ const Catalogue = () => {
                         onClick={(e) => {
                           e.stopPropagation();
                           handleReserve(book.id);
+                        }}
+                        sx={{
+                          borderColor: '#d6d3d1',
+                          color: '#78350f',
+                          fontFamily: 'Georgia, serif',
+                          textTransform: 'none',
+                          '&:hover': {
+                            borderColor: '#d97706',
+                            bgcolor: '#fef3c7'
+                          }
                         }}
                       >
                         Réserver
@@ -432,13 +621,42 @@ const Catalogue = () => {
 
       {/* Pagination */}
       {filteredBooks.length > itemsPerPage && (
-        <Box sx={{ display: 'flex', justifyContent: 'center', mt: 4 }}>
+        <Box sx={{ 
+          display: 'flex', 
+          justifyContent: 'center', 
+          mt: 6,
+          pt: 4,
+          borderTop: '1px solid #e7e5e4'
+        }}>
           <Pagination
             count={Math.ceil(filteredBooks.length / itemsPerPage)}
             page={currentPage}
-            onChange={(event, value) => setCurrentPage(value)}
-            color="primary"
-            size="large"
+            onChange={(event, value) => {
+              setCurrentPage(value);
+              window.scrollTo({ top: 0, behavior: 'smooth' });
+            }}
+            sx={{
+              '& .MuiPaginationItem-root': {
+                fontFamily: 'Georgia, serif',
+                fontWeight: 700,
+                fontSize: '0.875rem',
+                borderRadius: '2px',
+                color: '#78716c',
+                border: '1px solid #e7e5e4',
+                '&:hover': {
+                  bgcolor: '#fef3c7',
+                  borderColor: '#fcd34d'
+                },
+                '&.Mui-selected': {
+                  bgcolor: '#78350f',
+                  color: '#fef3c7',
+                  boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)',
+                  '&:hover': {
+                    bgcolor: '#92400e'
+                  }
+                }
+              }
+            }}
           />
         </Box>
       )}
@@ -449,12 +667,22 @@ const Catalogue = () => {
         onClose={() => setSelectedBook(null)}
         maxWidth="md"
         fullWidth
+        PaperProps={{
+          sx: {
+            borderRadius: '2px',
+            bgcolor: '#fffcf5'
+          }
+        }}
       >
         {selectedBook && (
           <>
-            <DialogTitle>
+            <DialogTitle sx={{ bgcolor: '#ffffff', borderBottom: '1px solid #e7e5e4' }}>
               <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <Typography variant="h5" fontWeight="600">
+                <Typography variant="h5" sx={{ 
+                  fontFamily: 'Georgia, serif',
+                  fontWeight: 700,
+                  color: '#451a03'
+                }}>
                   {selectedBook.title}
                 </Typography>
                 <IconButton onClick={() => setSelectedBook(null)}>
@@ -462,14 +690,18 @@ const Catalogue = () => {
                 </IconButton>
               </Box>
             </DialogTitle>
-            <DialogContent>
+            <DialogContent sx={{ pt: 3 }}>
               <Grid container spacing={3}>
                 <Grid item xs={12} md={4}>
                   <CardMedia
                     component="img"
                     image={selectedBook.cover}
                     alt={selectedBook.title}
-                    sx={{ borderRadius: 2 }}
+                    sx={{ 
+                      borderRadius: '2px',
+                      filter: 'sepia(0.15)',
+                      boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)'
+                    }}
                   />
                 </Grid>
                 <Grid item xs={12} md={8}>
@@ -477,15 +709,22 @@ const Catalogue = () => {
                     <Chip 
                       label={getStatusText(selectedBook.available, selectedBook.availableCopies)}
                       sx={{
-                        bgcolor: getStatusColor(selectedBook.available, selectedBook.availableCopies),
-                        color: 'white',
-                        fontWeight: 600,
+                        bgcolor: selectedBook.availableCopies > 0 ? '#f0fdf4' : '#fef2f2',
+                        color: selectedBook.availableCopies > 0 ? '#166534' : '#991b1b',
+                        border: selectedBook.availableCopies > 0 ? '1px solid #bbf7d0' : '1px solid #fecaca',
+                        fontWeight: 700,
+                        fontFamily: 'Georgia, serif',
                         mb: 2
                       }}
                     />
                   </Box>
                   
-                  <Typography variant="h6" color="text.secondary" gutterBottom>
+                  <Typography variant="h6" sx={{ 
+                    color: '#78716c',
+                    fontStyle: 'italic',
+                    fontFamily: 'Georgia, serif',
+                    mb: 2
+                  }}>
                     par {selectedBook.author}
                   </Typography>
                   
@@ -498,45 +737,84 @@ const Catalogue = () => {
 
                   <Grid container spacing={2} sx={{ mb: 3 }}>
                     <Grid item xs={6}>
-                      <Typography variant="body2" fontWeight="600">ISBN:</Typography>
-                      <Typography variant="body2">{selectedBook.isbn}</Typography>
+                      <Typography variant="body2" fontWeight="600" sx={{ fontFamily: 'Georgia, serif' }}>ISBN:</Typography>
+                      <Typography variant="body2" sx={{ fontFamily: 'monospace' }}>{selectedBook.isbn}</Typography>
                     </Grid>
                     <Grid item xs={6}>
-                      <Typography variant="body2" fontWeight="600">Éditeur:</Typography>
+                      <Typography variant="body2" fontWeight="600" sx={{ fontFamily: 'Georgia, serif' }}>Éditeur:</Typography>
                       <Typography variant="body2">{selectedBook.publisher}</Typography>
                     </Grid>
                     <Grid item xs={6}>
-                      <Typography variant="body2" fontWeight="600">Année:</Typography>
+                      <Typography variant="body2" fontWeight="600" sx={{ fontFamily: 'Georgia, serif' }}>Année:</Typography>
                       <Typography variant="body2">{selectedBook.year}</Typography>
                     </Grid>
                     <Grid item xs={6}>
-                      <Typography variant="body2" fontWeight="600">Genre:</Typography>
+                      <Typography variant="body2" fontWeight="600" sx={{ fontFamily: 'Georgia, serif' }}>Genre:</Typography>
                       <Typography variant="body2">{selectedBook.genre}</Typography>
                     </Grid>
                     <Grid item xs={6}>
-                      <Typography variant="body2" fontWeight="600">Exemplaires:</Typography>
+                      <Typography variant="body2" fontWeight="600" sx={{ fontFamily: 'Georgia, serif' }}>Exemplaires:</Typography>
                       <Typography variant="body2">
                         {selectedBook.availableCopies}/{selectedBook.totalCopies} disponibles
                       </Typography>
                     </Grid>
                   </Grid>
 
-                  <Typography variant="body1" sx={{ lineHeight: 1.6 }}>
+                  <Typography variant="body1" sx={{ 
+                    lineHeight: 1.6,
+                    color: '#57534e',
+                    fontFamily: 'Georgia, serif'
+                  }}>
                     {selectedBook.summary}
                   </Typography>
                 </Grid>
               </Grid>
             </DialogContent>
-            <DialogActions>
-              <Button onClick={() => setSelectedBook(null)}>
+            <DialogActions sx={{ bgcolor: '#ffffff', borderTop: '1px solid #e7e5e4', p: 2 }}>
+              <Button 
+                onClick={() => setSelectedBook(null)}
+                sx={{
+                  color: '#78716c',
+                  fontFamily: 'Georgia, serif',
+                  textTransform: 'none'
+                }}
+              >
                 Fermer
               </Button>
               {selectedBook.available && selectedBook.availableCopies > 0 ? (
-                <Button variant="contained" onClick={() => handleBorrow(selectedBook.id)}>
+                <Button 
+                  variant="contained" 
+                  onClick={() => handleBorrow(selectedBook.id)}
+                  sx={{
+                    bgcolor: '#78350f',
+                    fontFamily: 'Georgia, serif',
+                    fontWeight: 700,
+                    textTransform: 'none',
+                    borderRadius: '2px',
+                    '&:hover': {
+                      bgcolor: '#92400e'
+                    }
+                  }}
+                >
                   Emprunter ce livre
                 </Button>
               ) : (
-                <Button variant="outlined" onClick={() => handleReserve(selectedBook.id)}>
+                <Button 
+                  variant="outlined" 
+                  onClick={() => handleReserve(selectedBook.id)}
+                  sx={{
+                    borderColor: '#d6d3d1',
+                    color: '#78350f',
+                    fontFamily: 'Georgia, serif',
+                    fontWeight: 700,
+                    textTransform: 'none',
+                    borderRadius: '2px',
+                    '&:hover': {
+                      borderColor: '#d97706',
+                      bgcolor: '#fef3c7'
+                    }
+                  }}
+                >
                   Réserver ce livre
                 </Button>
               )}
