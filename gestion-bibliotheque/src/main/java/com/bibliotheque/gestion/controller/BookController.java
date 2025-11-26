@@ -5,6 +5,7 @@ import com.bibliotheque.gestion.dto.DataResponse;
 import com.bibliotheque.gestion.dto.ListResponse;
 import com.bibliotheque.gestion.dto.PageResponse;
 import com.bibliotheque.gestion.entity.Book;
+import com.bibliotheque.gestion.service.BookImportService;
 import com.bibliotheque.gestion.service.BookService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -14,6 +15,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
 import java.util.Optional;
@@ -27,6 +29,7 @@ import java.util.Set;
 public class BookController {
 
     private final BookService bookService;
+    private final BookImportService bookImportService;  // Add this
 
     /**
      * Crée un nouveau livre
@@ -128,7 +131,24 @@ public class BookController {
                     .body(new DataResponse<>(false, e.getMessage(), null));
         }
     }
+    @PostMapping("/import")
+    public ResponseEntity<DataResponse<BookImportService.ImportResult>> importBooks(
+            @RequestParam("file") MultipartFile file) {
 
+        log.info("Importing books from CSV: {}", file.getOriginalFilename());
+
+        if (file.isEmpty()) {
+            return ResponseEntity.badRequest()
+                    .body(new DataResponse<>(false, "File is empty", null));
+        }
+
+        BookImportService.ImportResult result = bookImportService.importBooksFromCsv(file);
+
+        String message = String.format("Import complete: %d added, %d skipped, %d errors",
+                result.successCount(), result.skipCount(), result.errors().size());
+
+        return ResponseEntity.ok(new DataResponse<>(true, message, result));
+    }
     /**
      * Supprime un livre
      * DELETE /api/books/{id}

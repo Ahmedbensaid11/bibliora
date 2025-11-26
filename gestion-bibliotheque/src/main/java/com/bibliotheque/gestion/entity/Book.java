@@ -4,6 +4,7 @@ import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 
 import java.time.LocalDateTime;
 import java.util.Date;
@@ -26,7 +27,7 @@ public class Book {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(unique = true, nullable = false, length = 17)
+    @Column(unique = true, nullable = false, length = 100)
     private String isbn; // ISBN-13 format
 
     @Column(nullable = false, length = 500)
@@ -54,8 +55,9 @@ public class Book {
     @Column(length = 100)
     private String genre;
 
-    @Column(length = 2000)
-    private String summary; // Résumé
+    @Column(columnDefinition = "TEXT")
+    private String summary;
+
 
     // Stock management
     @Column(name = "total_copies", nullable = false)
@@ -79,6 +81,7 @@ public class Book {
             joinColumns = @JoinColumn(name = "book_id"),
             inverseJoinColumns = @JoinColumn(name = "category_id")
     )
+    @JsonIgnoreProperties({"books", "parent", "children"})  // ADD THIS LINE
     @Builder.Default
     private Set<Category> categories = new HashSet<>();
 

@@ -22,530 +22,631 @@ import {
   DialogActions,
   IconButton,
   Rating,
-  Badge
+  CircularProgress,
+  Alert
 } from '@mui/material';
 import {
   Search,
-  FilterList,
   ViewModule,
   ViewList,
-  Bookmark,
-  BookmarkBorder,
   Visibility,
-  Close
+  Close,
+  MenuBook
 } from '@mui/icons-material';
 import { useTheme } from '@mui/material/styles';
 import useAuthStore from '../../store/authStore';
 
+const API_URL = 'http://localhost:8080/api';
+
 const Catalogue = () => {
   const theme = useTheme();
-  const { user } = useAuthStore();
+  const { token } = useAuthStore();
   const [viewMode, setViewMode] = useState('grid');
   const [searchTerm, setSearchTerm] = useState('');
-  const [selectedGenre, setSelectedGenre] = useState('');
+  const [selectedCategory, setSelectedCategory] = useState('');
   const [selectedStatus, setSelectedStatus] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
   const [selectedBook, setSelectedBook] = useState(null);
   const [books, setBooks] = useState([]);
+  const [categories, setCategories] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
-  // Données simulées pour les livres
-  const sampleBooks = [
-    {
-      id: 1,
-      title: "L'Étranger",
-      author: "Albert Camus",
-      isbn: "9782070360021",
-      publisher: "Gallimard",
-      year: 1942,
-      genre: "Roman Philosophique",
-      summary: "Un classique de la littérature française qui explore l'absurdité de la condition humaine.",
-      cover: "/api/placeholder/200/300",
-      available: true,
-      totalCopies: 5,
-      availableCopies: 3,
-      rating: 4.5
-    },
-    {
-      id: 2,
-      title: "1984",
-      author: "George Orwell",
-      isbn: "9782070368225",
-      publisher: "Gallimard",
-      year: 1949,
-      genre: "Science-Fiction",
-      summary: "Une dystopie visionnaire sur les dangers du totalitarisme.",
-      cover: "/api/placeholder/200/300",
-      available: false,
-      totalCopies: 3,
-      availableCopies: 0,
-      rating: 4.8
-    },
-    {
-      id: 3,
-      title: "Le Petit Prince",
-      author: "Antoine de Saint-Exupéry",
-      isbn: "9782070612758",
-      publisher: "Gallimard",
-      year: 1943,
-      genre: "Conte Philosophique",
-      summary: "Un conte poétique et philosophique sous l'apparence d'un livre pour enfants.",
-      cover: "/api/placeholder/200/300",
-      available: true,
-      totalCopies: 8,
-      availableCopies: 5,
-      rating: 4.7
-    },
-    {
-      id: 4,
-      title: "Les Misérables",
-      author: "Victor Hugo",
-      isbn: "9782253009265",
-      publisher: "Le Livre de Poche",
-      year: 1862,
-      genre: "Roman Historique",
-      summary: "Une fresque sociale et historique de la France du XIXe siècle.",
-      cover: "/api/placeholder/200/300",
-      available: true,
-      totalCopies: 4,
-      availableCopies: 2,
-      rating: 4.6
-    },
-    {
-      id: 5,
-      title: "Bel-Ami",
-      author: "Guy de Maupassant",
-      isbn: "9782253009266",
-      publisher: "Le Livre de Poche",
-      year: 1885,
-      genre: "Roman",
-      summary: "L'ascension sociale d'un jeune homme ambitieux dans le Paris du XIXe siècle.",
-      cover: "/api/placeholder/200/300",
-      available: true,
-      totalCopies: 6,
-      availableCopies: 4,
-      rating: 4.3
-    }
-  ];
+  const itemsPerPage = 12;
 
-  const genres = ["Roman", "Science-Fiction", "Fantasy", "Policier", "Historique", "Biographie", "Philosophique", "Conte"];
-  const itemsPerPage = 8;
-
+  // Fetch books and categories
   useEffect(() => {
-    // Simuler un appel API
-    setBooks(sampleBooks);
-  }, []);
+    const fetchData = async () => {
+      setLoading(true);
+      setError(null);
 
+      try {
+        const headers = {
+          'Content-Type': 'application/json',
+          ...(token && { 'Authorization': `Bearer ${token}` })
+        };
+
+        // Fetch books
+        const booksResponse = await fetch(`${API_URL}/books`, { headers });
+        const booksData = await booksResponse.json();
+
+        if (booksData.success) {
+          setBooks(booksData.data || []);
+        }
+
+        // Fetch categories
+        const categoriesResponse = await fetch(`${API_URL}/categories`, { headers });
+        const categoriesData = await categoriesResponse.json();
+
+        if (categoriesData.success) {
+          setCategories(categoriesData.data || []);
+        }
+      } catch (err) {
+        console.error('Error fetching data:', err);
+        setError('Erreur lors du chargement des données');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchData();
+  }, [token]);
+
+  // Filter books
   const filteredBooks = books.filter(book => {
-    const matchesSearch = book.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         book.author.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         book.isbn.includes(searchTerm);
-    const matchesGenre = !selectedGenre || book.genre === selectedGenre;
-    const matchesStatus = !selectedStatus || 
-                         (selectedStatus === 'available' && book.available) ||
-                         (selectedStatus === 'unavailable' && !book.available);
-    
-    return matchesSearch && matchesGenre && matchesStatus;
+    const matchesSearch = !searchTerm ||
+        book.title?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        book.author?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        book.isbn?.includes(searchTerm);
+
+    const matchesCategory = !selectedCategory ||
+        book.categories?.some(cat => cat.id === parseInt(selectedCategory));
+
+    const matchesStatus = !selectedStatus ||
+        (selectedStatus === 'available' && book.availableCopies > 0) ||
+        (selectedStatus === 'unavailable' && book.availableCopies === 0);
+
+    return matchesSearch && matchesCategory && matchesStatus;
   });
 
+  // Group books by category for display
+  const booksByCategory = categories.reduce((acc, category) => {
+    const categoryBooks = books.filter(book =>
+        book.categories?.some(cat => cat.id === category.id)
+    );
+    if (categoryBooks.length > 0) {
+      acc[category.name] = categoryBooks;
+    }
+    return acc;
+  }, {});
+
+  // Paginate filtered books
   const paginatedBooks = filteredBooks.slice(
-    (currentPage - 1) * itemsPerPage,
-    currentPage * itemsPerPage
+      (currentPage - 1) * itemsPerPage,
+      currentPage * itemsPerPage
   );
 
   const handleBorrow = (bookId) => {
-    // Logique d'emprunt
     console.log('Emprunter le livre:', bookId);
+    // TODO: Implement borrow logic
   };
 
   const handleReserve = (bookId) => {
-    // Logique de réservation
     console.log('Réserver le livre:', bookId);
+    // TODO: Implement reserve logic
   };
 
-  const getStatusColor = (available, availableCopies) => {
-    if (!available) return theme.palette.error.main;
-    if (availableCopies === 0) return theme.palette.warning.main;
+  const getStatusColor = (availableCopies) => {
+    if (availableCopies === 0) return theme.palette.error.main;
+    if (availableCopies <= 2) return theme.palette.warning.main;
     return theme.palette.success.main;
   };
 
-  const getStatusText = (available, availableCopies) => {
-    if (!available) return "Indisponible";
-    if (availableCopies === 0) return "Réservé";
+  const getStatusText = (availableCopies) => {
+    if (availableCopies === 0) return "Indisponible";
     return "Disponible";
   };
 
+  const getBookCover = (book) => {
+    if (book.coverUrl && book.coverUrl.startsWith('http')) {
+      return book.coverUrl;
+    }
+    // Default placeholder
+    return `https://via.placeholder.com/200x300/1976d2/ffffff?text=${encodeURIComponent(book.title?.substring(0, 10) || 'Book')}`;
+  };
+
+  // Reset page when filters change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchTerm, selectedCategory, selectedStatus]);
+
+  if (loading) {
+    return (
+        <Container maxWidth="xl" sx={{ py: 4, mt: 8, textAlign: 'center' }}>
+          <CircularProgress size={60} />
+          <Typography variant="h6" sx={{ mt: 2 }}>Chargement du catalogue...</Typography>
+        </Container>
+    );
+  }
+
+  if (error) {
+    return (
+        <Container maxWidth="xl" sx={{ py: 4, mt: 8 }}>
+          <Alert severity="error">{error}</Alert>
+        </Container>
+    );
+  }
+
+  // Determine view: grouped by category or filtered list
+  const showGroupedView = !searchTerm && !selectedCategory && !selectedStatus;
+
   return (
-    <Container maxWidth="xl" sx={{ py: 4, mt: 8 }}>
-      {/* En-tête */}
-      <Box sx={{ mb: 4 }}>
-        <Typography variant="h3" component="h1" sx={{ 
-          fontWeight: 700,
-          background: `linear-gradient(135deg, ${theme.palette.primary.main} 0%, ${theme.palette.primary.light} 100%)`,
-          backgroundClip: 'text',
-          WebkitBackgroundClip: 'text',
-          color: 'transparent',
-          mb: 1
-        }}>
-          Catalogue des Livres
-        </Typography>
-        <Typography variant="h6" color="text.secondary">
-          Découvrez notre collection complète de livres
-        </Typography>
-      </Box>
+      <Container maxWidth="xl" sx={{ py: 4, mt: 8 }}>
+        {/* Header */}
+        <Box sx={{ mb: 4 }}>
+          <Typography variant="h3" component="h1" sx={{
+            fontWeight: 700,
+            background: `linear-gradient(135deg, ${theme.palette.primary.main} 0%, ${theme.palette.primary.light} 100%)`,
+            backgroundClip: 'text',
+            WebkitBackgroundClip: 'text',
+            color: 'transparent',
+            mb: 1
+          }}>
+            Catalogue des Livres
+          </Typography>
+          <Typography variant="h6" color="text.secondary">
+            {books.length} livres disponibles dans notre collection
+          </Typography>
+        </Box>
 
-      {/* Barre de recherche et filtres */}
-      <Card sx={{ mb: 4, p: 3 }}>
-        <Grid container spacing={3} alignItems="center">
-          <Grid item xs={12} md={6}>
-            <TextField
-              fullWidth
-              placeholder="Rechercher par titre, auteur ou ISBN..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              InputProps={{
-                startAdornment: (
-                  <InputAdornment position="start">
-                    <Search color="primary" />
-                  </InputAdornment>
-                ),
-              }}
-            />
-          </Grid>
-          <Grid item xs={12} md={2}>
-            <FormControl fullWidth>
-              <InputLabel>Genre</InputLabel>
-              <Select
-                value={selectedGenre}
-                label="Genre"
-                onChange={(e) => setSelectedGenre(e.target.value)}
-              >
-                <MenuItem value="">Tous les genres</MenuItem>
-                {genres.map((genre) => (
-                  <MenuItem key={genre} value={genre}>{genre}</MenuItem>
-                ))}
-              </Select>
-            </FormControl>
-          </Grid>
-          <Grid item xs={12} md={2}>
-            <FormControl fullWidth>
-              <InputLabel>Statut</InputLabel>
-              <Select
-                value={selectedStatus}
-                label="Statut"
-                onChange={(e) => setSelectedStatus(e.target.value)}
-              >
-                <MenuItem value="">Tous</MenuItem>
-                <MenuItem value="available">Disponible</MenuItem>
-                <MenuItem value="unavailable">Indisponible</MenuItem>
-              </Select>
-            </FormControl>
-          </Grid>
-          <Grid item xs={12} md={2}>
-            <Box sx={{ display: 'flex', gap: 1, justifyContent: 'flex-end' }}>
-              <IconButton 
-                onClick={() => setViewMode('grid')}
-                color={viewMode === 'grid' ? 'primary' : 'default'}
-              >
-                <ViewModule />
-              </IconButton>
-              <IconButton 
-                onClick={() => setViewMode('list')}
-                color={viewMode === 'list' ? 'primary' : 'default'}
-              >
-                <ViewList />
-              </IconButton>
-            </Box>
-          </Grid>
-        </Grid>
-      </Card>
-
-      {/* Résultats */}
-      <Typography variant="h6" color="text.secondary" sx={{ mb: 2 }}>
-        {filteredBooks.length} livre(s) trouvé(s)
-      </Typography>
-
-      {/* Grille des livres */}
-      {viewMode === 'grid' ? (
-        <Grid container spacing={3}>
-          {paginatedBooks.map((book) => (
-            <Grid item xs={12} sm={6} md={4} lg={3} key={book.id}>
-              <Card 
-                sx={{ 
-                  height: '100%',
-                  cursor: 'pointer',
-                  transition: 'all 0.3s ease',
-                  '&:hover': {
-                    transform: 'translateY(-8px)',
-                    boxShadow: theme.shadows[8]
-                  }
-                }}
-                onClick={() => setSelectedBook(book)}
-              >
-                <CardMedia
-                  component="img"
-                  height="200"
-                  image={book.cover}
-                  alt={book.title}
-                  sx={{ objectFit: 'cover' }}
-                />
-                <CardContent>
-                  <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 1 }}>
-                    <Chip 
-                      label={getStatusText(book.available, book.availableCopies)}
-                      size="small"
-                      sx={{
-                        bgcolor: getStatusColor(book.available, book.availableCopies),
-                        color: 'white',
-                        fontWeight: 600
-                      }}
-                    />
-                    <Rating value={book.rating} readOnly size="small" />
-                  </Box>
-                  
-                  <Typography variant="h6" component="h3" sx={{ 
-                    fontWeight: 600,
-                    mb: 1,
-                    height: '48px',
-                    overflow: 'hidden',
-                    display: '-webkit-box',
-                    WebkitLineClamp: 2,
-                    WebkitBoxOrient: 'vertical'
-                  }}>
-                    {book.title}
-                  </Typography>
-                  
-                  <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
-                    {book.author}
-                  </Typography>
-                  
-                  <Typography variant="caption" color="text.secondary" display="block" sx={{ mb: 2 }}>
-                    {book.year} • {book.genre}
-                  </Typography>
-
-                  <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <Typography variant="body2" color="text.secondary">
-                      {book.availableCopies}/{book.totalCopies} exemplaires
-                    </Typography>
-                    <IconButton size="small" color="primary">
-                      <Visibility />
-                    </IconButton>
-                  </Box>
-                </CardContent>
-              </Card>
+        {/* Search and Filters */}
+        <Card sx={{ mb: 4, p: 3 }}>
+          <Grid container spacing={3} alignItems="center">
+            <Grid item xs={12} md={5}>
+              <TextField
+                  fullWidth
+                  placeholder="Rechercher par titre, auteur ou ISBN..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  InputProps={{
+                    startAdornment: (
+                        <InputAdornment position="start">
+                          <Search color="primary" />
+                        </InputAdornment>
+                    ),
+                  }}
+              />
             </Grid>
-          ))}
-        </Grid>
-      ) : (
-        /* Vue liste */
-        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-          {paginatedBooks.map((book) => (
-            <Card 
-              key={book.id}
-              sx={{ 
-                p: 2,
-                cursor: 'pointer',
-                transition: 'all 0.2s ease',
-                '&:hover': {
-                  bgcolor: 'action.hover',
-                  transform: 'translateX(4px)'
-                }
-              }}
-              onClick={() => setSelectedBook(book)}
-            >
-              <Grid container spacing={2} alignItems="center">
-                <Grid item xs={2} md={1}>
-                  <CardMedia
-                    component="img"
-                    height="80"
-                    image={book.cover}
-                    alt={book.title}
-                    sx={{ objectFit: 'cover', borderRadius: 1 }}
-                  />
-                </Grid>
-                <Grid item xs={6} md={3}>
-                  <Typography variant="h6" fontWeight="600">
-                    {book.title}
-                  </Typography>
-                  <Typography variant="body2" color="text.secondary">
-                    {book.author}
-                  </Typography>
-                </Grid>
-                <Grid item xs={4} md={2}>
-                  <Chip 
-                    label={book.genre}
-                    size="small"
-                    variant="outlined"
-                  />
-                </Grid>
-                <Grid item xs={4} md={2}>
-                  <Typography variant="body2">
-                    ISBN: {book.isbn}
-                  </Typography>
-                </Grid>
-                <Grid item xs={4} md={2}>
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                    <Box
-                      sx={{
-                        width: 8,
-                        height: 8,
-                        borderRadius: '50%',
-                        bgcolor: getStatusColor(book.available, book.availableCopies)
-                      }}
-                    />
-                    <Typography variant="body2">
-                      {getStatusText(book.available, book.availableCopies)}
-                    </Typography>
-                  </Box>
-                </Grid>
-                <Grid item xs={4} md={2}>
-                  <Box sx={{ display: 'flex', gap: 1, justifyContent: 'flex-end' }}>
-                    {book.available && book.availableCopies > 0 ? (
-                      <Button 
-                        variant="contained" 
-                        size="small"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleBorrow(book.id);
-                        }}
-                      >
-                        Emprunter
-                      </Button>
-                    ) : (
-                      <Button 
-                        variant="outlined" 
-                        size="small"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleReserve(book.id);
-                        }}
-                      >
-                        Réserver
-                      </Button>
-                    )}
-                  </Box>
-                </Grid>
-              </Grid>
-            </Card>
-          ))}
-        </Box>
-      )}
-
-      {/* Pagination */}
-      {filteredBooks.length > itemsPerPage && (
-        <Box sx={{ display: 'flex', justifyContent: 'center', mt: 4 }}>
-          <Pagination
-            count={Math.ceil(filteredBooks.length / itemsPerPage)}
-            page={currentPage}
-            onChange={(event, value) => setCurrentPage(value)}
-            color="primary"
-            size="large"
-          />
-        </Box>
-      )}
-
-      {/* Dialog détail du livre */}
-      <Dialog 
-        open={!!selectedBook} 
-        onClose={() => setSelectedBook(null)}
-        maxWidth="md"
-        fullWidth
-      >
-        {selectedBook && (
-          <>
-            <DialogTitle>
-              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <Typography variant="h5" fontWeight="600">
-                  {selectedBook.title}
-                </Typography>
-                <IconButton onClick={() => setSelectedBook(null)}>
-                  <Close />
+            <Grid item xs={12} md={3}>
+              <FormControl fullWidth>
+                <InputLabel>Catégorie</InputLabel>
+                <Select
+                    value={selectedCategory}
+                    label="Catégorie"
+                    onChange={(e) => setSelectedCategory(e.target.value)}
+                >
+                  <MenuItem value="">Toutes les catégories</MenuItem>
+                  {categories.map((category) => (
+                      <MenuItem key={category.id} value={category.id}>
+                        {category.name}
+                      </MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
+            </Grid>
+            <Grid item xs={12} md={2}>
+              <FormControl fullWidth>
+                <InputLabel>Statut</InputLabel>
+                <Select
+                    value={selectedStatus}
+                    label="Statut"
+                    onChange={(e) => setSelectedStatus(e.target.value)}
+                >
+                  <MenuItem value="">Tous</MenuItem>
+                  <MenuItem value="available">Disponible</MenuItem>
+                  <MenuItem value="unavailable">Indisponible</MenuItem>
+                </Select>
+              </FormControl>
+            </Grid>
+            <Grid item xs={12} md={2}>
+              <Box sx={{ display: 'flex', gap: 1, justifyContent: 'flex-end' }}>
+                <IconButton
+                    onClick={() => setViewMode('grid')}
+                    color={viewMode === 'grid' ? 'primary' : 'default'}
+                >
+                  <ViewModule />
+                </IconButton>
+                <IconButton
+                    onClick={() => setViewMode('list')}
+                    color={viewMode === 'list' ? 'primary' : 'default'}
+                >
+                  <ViewList />
                 </IconButton>
               </Box>
-            </DialogTitle>
-            <DialogContent>
-              <Grid container spacing={3}>
-                <Grid item xs={12} md={4}>
-                  <CardMedia
-                    component="img"
-                    image={selectedBook.cover}
-                    alt={selectedBook.title}
-                    sx={{ borderRadius: 2 }}
-                  />
-                </Grid>
-                <Grid item xs={12} md={8}>
-                  <Box sx={{ mb: 2 }}>
-                    <Chip 
-                      label={getStatusText(selectedBook.available, selectedBook.availableCopies)}
-                      sx={{
-                        bgcolor: getStatusColor(selectedBook.available, selectedBook.availableCopies),
-                        color: 'white',
-                        fontWeight: 600,
-                        mb: 2
-                      }}
+            </Grid>
+          </Grid>
+        </Card>
+
+        {/* Results count */}
+        <Typography variant="h6" color="text.secondary" sx={{ mb: 3 }}>
+          {filteredBooks.length} livre(s) trouvé(s)
+        </Typography>
+
+        {/* Grouped by Category View */}
+        {showGroupedView ? (
+            <Box>
+              {Object.entries(booksByCategory).map(([categoryName, categoryBooks]) => (
+                  <Box key={categoryName} sx={{ mb: 5 }}>
+                    <Box sx={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 2,
+                      mb: 3,
+                      pb: 1,
+                      borderBottom: `2px solid ${theme.palette.primary.main}`
+                    }}>
+                      <MenuBook color="primary" />
+                      <Typography variant="h5" fontWeight="600">
+                        {categoryName}
+                      </Typography>
+                      <Chip
+                          label={`${categoryBooks.length} livre(s)`}
+                          size="small"
+                          color="primary"
+                          variant="outlined"
+                      />
+                    </Box>
+
+                    <Grid container spacing={3}>
+                      {categoryBooks.slice(0, 6).map((book) => (
+                          <Grid item xs={12} sm={6} md={4} lg={2} key={book.id}>
+                            <BookCard
+                                book={book}
+                                theme={theme}
+                                getBookCover={getBookCover}
+                                getStatusColor={getStatusColor}
+                                getStatusText={getStatusText}
+                                onClick={() => setSelectedBook(book)}
+                            />
+                          </Grid>
+                      ))}
+                    </Grid>
+
+                    {categoryBooks.length > 6 && (
+                        <Box sx={{ textAlign: 'center', mt: 2 }}>
+                          <Button
+                              variant="outlined"
+                              onClick={() => setSelectedCategory(categories.find(c => c.name === categoryName)?.id.toString() || '')}
+                          >
+                            Voir tous les {categoryBooks.length} livres de cette catégorie
+                          </Button>
+                        </Box>
+                    )}
+                  </Box>
+              ))}
+            </Box>
+        ) : (
+            /* Filtered View */
+            <>
+              {viewMode === 'grid' ? (
+                  <Grid container spacing={3}>
+                    {paginatedBooks.map((book) => (
+                        <Grid item xs={12} sm={6} md={4} lg={3} key={book.id}>
+                          <BookCard
+                              book={book}
+                              theme={theme}
+                              getBookCover={getBookCover}
+                              getStatusColor={getStatusColor}
+                              getStatusText={getStatusText}
+                              onClick={() => setSelectedBook(book)}
+                          />
+                        </Grid>
+                    ))}
+                  </Grid>
+              ) : (
+                  /* List View */
+                  <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                    {paginatedBooks.map((book) => (
+                        <Card
+                            key={book.id}
+                            sx={{
+                              p: 2,
+                              cursor: 'pointer',
+                              transition: 'all 0.2s ease',
+                              '&:hover': {
+                                bgcolor: 'action.hover',
+                                transform: 'translateX(4px)'
+                              }
+                            }}
+                            onClick={() => setSelectedBook(book)}
+                        >
+                          <Grid container spacing={2} alignItems="center">
+                            <Grid item xs={2} md={1}>
+                              <CardMedia
+                                  component="img"
+                                  height="80"
+                                  image={getBookCover(book)}
+                                  alt={book.title}
+                                  sx={{ objectFit: 'cover', borderRadius: 1 }}
+                                  onError={(e) => {
+                                    e.target.src = `https://via.placeholder.com/200x300/1976d2/ffffff?text=Book`;
+                                  }}
+                              />
+                            </Grid>
+                            <Grid item xs={6} md={3}>
+                              <Typography variant="h6" fontWeight="600" noWrap>
+                                {book.title}
+                              </Typography>
+                              <Typography variant="body2" color="text.secondary">
+                                {book.author}
+                              </Typography>
+                            </Grid>
+                            <Grid item xs={4} md={2}>
+                              {book.categories?.slice(0, 2).map(cat => (
+                                  <Chip
+                                      key={cat.id}
+                                      label={cat.name}
+                                      size="small"
+                                      variant="outlined"
+                                      sx={{ mr: 0.5, mb: 0.5 }}
+                                  />
+                              ))}
+                            </Grid>
+                            <Grid item xs={4} md={2}>
+                              <Typography variant="body2" color="text.secondary">
+                                {book.publisher}
+                              </Typography>
+                              <Typography variant="caption" color="text.secondary">
+                                {book.publicationYear}
+                              </Typography>
+                            </Grid>
+                            <Grid item xs={4} md={2}>
+                              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                                <Box
+                                    sx={{
+                                      width: 8,
+                                      height: 8,
+                                      borderRadius: '50%',
+                                      bgcolor: getStatusColor(book.availableCopies)
+                                    }}
+                                />
+                                <Typography variant="body2">
+                                  {book.availableCopies}/{book.totalCopies} dispo
+                                </Typography>
+                              </Box>
+                            </Grid>
+                            <Grid item xs={4} md={2}>
+                              <Box sx={{ display: 'flex', gap: 1, justifyContent: 'flex-end' }}>
+                                {book.availableCopies > 0 ? (
+                                    <Button
+                                        variant="contained"
+                                        size="small"
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          handleBorrow(book.id);
+                                        }}
+                                    >
+                                      Emprunter
+                                    </Button>
+                                ) : (
+                                    <Button
+                                        variant="outlined"
+                                        size="small"
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          handleReserve(book.id);
+                                        }}
+                                    >
+                                      Réserver
+                                    </Button>
+                                )}
+                              </Box>
+                            </Grid>
+                          </Grid>
+                        </Card>
+                    ))}
+                  </Box>
+              )}
+
+              {/* Pagination */}
+              {filteredBooks.length > itemsPerPage && (
+                  <Box sx={{ display: 'flex', justifyContent: 'center', mt: 4 }}>
+                    <Pagination
+                        count={Math.ceil(filteredBooks.length / itemsPerPage)}
+                        page={currentPage}
+                        onChange={(event, value) => setCurrentPage(value)}
+                        color="primary"
+                        size="large"
                     />
                   </Box>
-                  
-                  <Typography variant="h6" color="text.secondary" gutterBottom>
-                    par {selectedBook.author}
-                  </Typography>
-                  
-                  <Box sx={{ mb: 2 }}>
-                    <Rating value={selectedBook.rating} readOnly />
-                    <Typography variant="body2" color="text.secondary">
-                      ({selectedBook.rating}/5)
-                    </Typography>
-                  </Box>
+              )}
+            </>
+        )}
 
-                  <Grid container spacing={2} sx={{ mb: 3 }}>
-                    <Grid item xs={6}>
-                      <Typography variant="body2" fontWeight="600">ISBN:</Typography>
-                      <Typography variant="body2">{selectedBook.isbn}</Typography>
+        {/* Book Detail Dialog */}
+        <Dialog
+            open={!!selectedBook}
+            onClose={() => setSelectedBook(null)}
+            maxWidth="md"
+            fullWidth
+        >
+          {selectedBook && (
+              <>
+                <DialogTitle>
+                  <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <Typography variant="h5" fontWeight="600">
+                      {selectedBook.title}
+                    </Typography>
+                    <IconButton onClick={() => setSelectedBook(null)}>
+                      <Close />
+                    </IconButton>
+                  </Box>
+                </DialogTitle>
+                <DialogContent>
+                  <Grid container spacing={3}>
+                    <Grid item xs={12} md={4}>
+                      <CardMedia
+                          component="img"
+                          image={getBookCover(selectedBook)}
+                          alt={selectedBook.title}
+                          sx={{ borderRadius: 2, maxHeight: 400, objectFit: 'contain' }}
+                          onError={(e) => {
+                            e.target.src = `https://via.placeholder.com/200x300/1976d2/ffffff?text=Book`;
+                          }}
+                      />
                     </Grid>
-                    <Grid item xs={6}>
-                      <Typography variant="body2" fontWeight="600">Éditeur:</Typography>
-                      <Typography variant="body2">{selectedBook.publisher}</Typography>
-                    </Grid>
-                    <Grid item xs={6}>
-                      <Typography variant="body2" fontWeight="600">Année:</Typography>
-                      <Typography variant="body2">{selectedBook.year}</Typography>
-                    </Grid>
-                    <Grid item xs={6}>
-                      <Typography variant="body2" fontWeight="600">Genre:</Typography>
-                      <Typography variant="body2">{selectedBook.genre}</Typography>
-                    </Grid>
-                    <Grid item xs={6}>
-                      <Typography variant="body2" fontWeight="600">Exemplaires:</Typography>
-                      <Typography variant="body2">
-                        {selectedBook.availableCopies}/{selectedBook.totalCopies} disponibles
+                    <Grid item xs={12} md={8}>
+                      <Box sx={{ mb: 2 }}>
+                        <Chip
+                            label={getStatusText(selectedBook.availableCopies)}
+                            sx={{
+                              bgcolor: getStatusColor(selectedBook.availableCopies),
+                              color: 'white',
+                              fontWeight: 600,
+                              mr: 1
+                            }}
+                        />
+                        {selectedBook.categories?.map(cat => (
+                            <Chip
+                                key={cat.id}
+                                label={cat.name}
+                                variant="outlined"
+                                size="small"
+                                sx={{ mr: 0.5 }}
+                            />
+                        ))}
+                      </Box>
+
+                      <Typography variant="h6" color="text.secondary" gutterBottom>
+                        par {selectedBook.author}
                       </Typography>
+
+                      <Grid container spacing={2} sx={{ mb: 3, mt: 1 }}>
+                        <Grid item xs={6}>
+                          <Typography variant="body2" fontWeight="600">ISBN:</Typography>
+                          <Typography variant="body2">{selectedBook.isbn || 'N/A'}</Typography>
+                        </Grid>
+                        <Grid item xs={6}>
+                          <Typography variant="body2" fontWeight="600">Éditeur:</Typography>
+                          <Typography variant="body2">{selectedBook.publisher || 'N/A'}</Typography>
+                        </Grid>
+                        <Grid item xs={6}>
+                          <Typography variant="body2" fontWeight="600">Année:</Typography>
+                          <Typography variant="body2">{selectedBook.publicationYear || 'N/A'}</Typography>
+                        </Grid>
+                        <Grid item xs={6}>
+                          <Typography variant="body2" fontWeight="600">Genre:</Typography>
+                          <Typography variant="body2">{selectedBook.genre || 'N/A'}</Typography>
+                        </Grid>
+                        <Grid item xs={6}>
+                          <Typography variant="body2" fontWeight="600">Langue:</Typography>
+                          <Typography variant="body2">{selectedBook.language || 'N/A'}</Typography>
+                        </Grid>
+                        <Grid item xs={6}>
+                          <Typography variant="body2" fontWeight="600">Pages:</Typography>
+                          <Typography variant="body2">{selectedBook.numberOfPages || 'N/A'}</Typography>
+                        </Grid>
+                        <Grid item xs={6}>
+                          <Typography variant="body2" fontWeight="600">Exemplaires:</Typography>
+                          <Typography variant="body2">
+                            {selectedBook.availableCopies}/{selectedBook.totalCopies} disponibles
+                          </Typography>
+                        </Grid>
+                      </Grid>
+
+                      {selectedBook.summary && (
+                          <>
+                            <Typography variant="body2" fontWeight="600" gutterBottom>
+                              Résumé:
+                            </Typography>
+                            <Typography variant="body1" sx={{ lineHeight: 1.6 }}>
+                              {selectedBook.summary}
+                            </Typography>
+                          </>
+                      )}
                     </Grid>
                   </Grid>
-
-                  <Typography variant="body1" sx={{ lineHeight: 1.6 }}>
-                    {selectedBook.summary}
-                  </Typography>
-                </Grid>
-              </Grid>
-            </DialogContent>
-            <DialogActions>
-              <Button onClick={() => setSelectedBook(null)}>
-                Fermer
-              </Button>
-              {selectedBook.available && selectedBook.availableCopies > 0 ? (
-                <Button variant="contained" onClick={() => handleBorrow(selectedBook.id)}>
-                  Emprunter ce livre
-                </Button>
-              ) : (
-                <Button variant="outlined" onClick={() => handleReserve(selectedBook.id)}>
-                  Réserver ce livre
-                </Button>
-              )}
-            </DialogActions>
-          </>
-        )}
-      </Dialog>
-    </Container>
+                </DialogContent>
+                <DialogActions>
+                  <Button onClick={() => setSelectedBook(null)}>
+                    Fermer
+                  </Button>
+                  {selectedBook.availableCopies > 0 ? (
+                      <Button variant="contained" onClick={() => handleBorrow(selectedBook.id)}>
+                        Emprunter ce livre
+                      </Button>
+                  ) : (
+                      <Button variant="outlined" onClick={() => handleReserve(selectedBook.id)}>
+                        Réserver ce livre
+                      </Button>
+                  )}
+                </DialogActions>
+              </>
+          )}
+        </Dialog>
+      </Container>
   );
 };
+
+// BookCard Component
+const BookCard = ({ book, theme, getBookCover, getStatusColor, getStatusText, onClick }) => (
+    <Card
+        sx={{
+          height: '100%',
+          cursor: 'pointer',
+          transition: 'all 0.3s ease',
+          '&:hover': {
+            transform: 'translateY(-8px)',
+            boxShadow: theme.shadows[8]
+          }
+        }}
+        onClick={onClick}
+    >
+      <CardMedia
+          component="img"
+          height="180"
+          image={getBookCover(book)}
+          alt={book.title}
+          sx={{ objectFit: 'cover' }}
+          onError={(e) => {
+            e.target.src = `https://via.placeholder.com/200x300/1976d2/ffffff?text=Book`;
+          }}
+      />
+      <CardContent sx={{ p: 2 }}>
+        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 1 }}>
+          <Chip
+              label={getStatusText(book.availableCopies)}
+              size="small"
+              sx={{
+                bgcolor: getStatusColor(book.availableCopies),
+                color: 'white',
+                fontWeight: 600,
+                fontSize: '0.7rem'
+              }}
+          />
+        </Box>
+
+        <Typography variant="subtitle1" component="h3" sx={{
+          fontWeight: 600,
+          mb: 0.5,
+          height: '48px',
+          overflow: 'hidden',
+          display: '-webkit-box',
+          WebkitLineClamp: 2,
+          WebkitBoxOrient: 'vertical'
+        }}>
+          {book.title}
+        </Typography>
+
+        <Typography variant="body2" color="text.secondary" noWrap>
+          {book.author}
+        </Typography>
+
+        <Typography variant="caption" color="text.secondary" display="block" sx={{ mt: 1 }}>
+          {book.availableCopies}/{book.totalCopies} exemplaires
+        </Typography>
+      </CardContent>
+    </Card>
+);
 
 export default Catalogue;
