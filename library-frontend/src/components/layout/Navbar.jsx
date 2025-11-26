@@ -33,7 +33,8 @@ import {
   AccountCircle,
   Settings,
   Logout,
-  Close
+  Close,
+  MenuBook
 } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 import useAuthStore from '../../store/authStore';
@@ -111,12 +112,39 @@ const Navbar = () => {
   };
 
   const drawer = (
-    <Box onClick={handleDrawerToggle} sx={{ width: 250, bgcolor: '#3D5467', height: '100%', color: 'white' }}>
-      <Box sx={{ p: 3, display: 'flex', alignItems: 'center', gap: 1 }}>
-        <LibraryBooks />
-        <Typography variant="h6" sx={{ fontWeight: 'bold' }}>
-          BiblioRA
-        </Typography>
+    <Box onClick={handleDrawerToggle} sx={{ width: 250, bgcolor: '#8B4513', height: '100%', color: 'white' }}>
+      {/* Logo in drawer */}
+      <Box sx={{ p: 3, display: 'flex', alignItems: 'center', gap: 1.5 }}>
+        <Box
+          sx={{
+            bgcolor: '#FFF8F0',
+            p: 1,
+            borderRadius: '50%',
+            border: '2px solid rgba(255, 248, 240, 0.3)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            boxShadow: 'inset 0 2px 4px rgba(0,0,0,0.1)'
+          }}
+        >
+          <MenuBook sx={{ fontSize: 24, color: '#8B4513' }} />
+        </Box>
+        <Box sx={{ display: 'flex', flexDirection: 'column' }}>
+          <Typography variant="h6" sx={{ fontWeight: 'bold', fontFamily: 'serif', letterSpacing: '0.5px' }}>
+            BiblioTech
+          </Typography>
+          <Typography
+            variant="caption"
+            sx={{
+              fontSize: '0.625rem',
+              textTransform: 'uppercase',
+              letterSpacing: '2px',
+              color: 'rgba(255, 248, 240, 0.8)'
+            }}
+          >
+            Savoir & Tradition
+          </Typography>
+        </Box>
       </Box>
       <Divider sx={{ borderColor: 'rgba(255,255,255,0.1)' }} />
       <List>
@@ -146,7 +174,7 @@ const Navbar = () => {
         position="fixed" 
         elevation={0}
         sx={{ 
-          background: 'linear-gradient(135deg, #3D5467 0%, #536D82 100%)',
+          background: 'linear-gradient(135deg, #8B4513 0%, #A0522D 100%)',
           borderBottom: '1px solid rgba(255,255,255,0.08)',
           backdropFilter: 'blur(10px)',
           left: 0,
@@ -166,27 +194,67 @@ const Navbar = () => {
               <MenuIcon />
             </IconButton>
 
+            {/* Updated Logo */}
             <Box 
               sx={{ 
                 display: 'flex', 
                 alignItems: 'center', 
                 gap: 1.5,
                 cursor: 'pointer',
-                mr: 5
+                mr: 5,
+                '&:hover .logo-icon': {
+                  transform: 'scale(1.05)',
+                },
+                '&:hover .logo-text': {
+                  color: 'rgba(255, 248, 240, 0.9)',
+                }
               }}
               onClick={() => navigate('/dashboard')}
             >
-              <LibraryBooks sx={{ fontSize: 32 }} />
-              <Typography
-                variant="h5"
-                sx={{ 
-                  fontWeight: 700,
-                  display: { xs: 'none', sm: 'block' },
-                  letterSpacing: '-0.5px'
+              <Box
+                className="logo-icon"
+                sx={{
+                  bgcolor: '#FFF8F0',
+                  p: 1,
+                  borderRadius: '50%',
+                  border: '2px solid rgba(255, 248, 240, 0.3)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  boxShadow: 'inset 0 2px 4px rgba(0,0,0,0.1)',
+                  transition: 'transform 0.3s ease'
                 }}
               >
-                BiblioRA
-              </Typography>
+                <MenuBook sx={{ fontSize: 28, color: '#8B4513' }} />
+              </Box>
+              <Box sx={{ display: 'flex', flexDirection: 'column' }}>
+                <Typography
+                  className="logo-text"
+                  variant="h5"
+                  sx={{ 
+                    fontWeight: 700,
+                    display: { xs: 'none', sm: 'block' },
+                    letterSpacing: '0.5px',
+                    fontFamily: 'serif',
+                    transition: 'color 0.3s ease',
+                    lineHeight: 1.2
+                  }}
+                >
+                  BiblioTech
+                </Typography>
+                <Typography
+                  variant="caption"
+                  sx={{
+                    fontSize: '0.625rem',
+                    textTransform: 'uppercase',
+                    letterSpacing: '2px',
+                    color: 'rgba(255, 248, 240, 0.8)',
+                    display: { xs: 'none', sm: 'block' }
+                  }}
+                >
+                  Savoir & Tradition
+                </Typography>
+              </Box>
             </Box>
 
             <Box sx={{ flexGrow: 1, display: { xs: 'none', md: 'flex' }, gap: 1 }}>
@@ -308,7 +376,7 @@ const Navbar = () => {
               >
                 <Avatar 
                   sx={{ 
-                    bgcolor: '#7F8C8D',
+                    bgcolor: '#D2691E',
                     width: 38,
                     height: 38,
                     fontSize: '1rem',
@@ -334,7 +402,7 @@ const Navbar = () => {
                 }
               }}
             >
-              <Box sx={{ p: 2.5, bgcolor: '#3D5467', color: 'white' }}>
+              <Box sx={{ p: 2.5, bgcolor: '#8B4513', color: 'white' }}>
                 <Typography variant="subtitle1" fontWeight="bold">
                   Notifications
                 </Typography>
@@ -352,8 +420,8 @@ const Navbar = () => {
                     px: 2.5,
                     borderLeft: '3px solid transparent',
                     '&:hover': { 
-                      bgcolor: '#f8f9fa',
-                      borderLeftColor: '#3D5467'
+                      bgcolor: '#FFF8F0',
+                      borderLeftColor: '#8B4513'
                     }
                   }}
                 >
@@ -372,9 +440,9 @@ const Navbar = () => {
                 <Button 
                   size="small" 
                   sx={{ 
-                    color: '#3D5467',
+                    color: '#8B4513',
                     fontWeight: 600,
-                    '&:hover': { bgcolor: '#f8f9fa' }
+                    '&:hover': { bgcolor: '#FFF8F0' }
                   }}
                 >
                   Voir toutes les notifications
@@ -395,8 +463,8 @@ const Navbar = () => {
                 }
               }}
             >
-              <Box sx={{ px: 2.5, py: 2, bgcolor: '#f8f9fa' }}>
-                <Typography variant="subtitle2" fontWeight="bold" sx={{ color: '#3D5467' }}>
+              <Box sx={{ px: 2.5, py: 2, bgcolor: '#FFF8F0' }}>
+                <Typography variant="subtitle2" fontWeight="bold" sx={{ color: '#8B4513' }}>
                   {user?.username || 'Utilisateur'}
                 </Typography>
                 <Typography variant="caption" color="text.secondary">
@@ -409,11 +477,11 @@ const Navbar = () => {
                 sx={{ 
                   py: 1.5, 
                   px: 2.5,
-                  '&:hover': { bgcolor: '#f8f9fa' }
+                  '&:hover': { bgcolor: '#FFF8F0' }
                 }}
               >
                 <ListItemIcon>
-                  <AccountCircle fontSize="small" sx={{ color: '#3D5467' }} />
+                  <AccountCircle fontSize="small" sx={{ color: '#8B4513' }} />
                 </ListItemIcon>
                 <Typography variant="body2">Mon Profil</Typography>
               </MenuItem>
@@ -422,11 +490,11 @@ const Navbar = () => {
                 sx={{ 
                   py: 1.5, 
                   px: 2.5,
-                  '&:hover': { bgcolor: '#f8f9fa' }
+                  '&:hover': { bgcolor: '#FFF8F0' }
                 }}
               >
                 <ListItemIcon>
-                  <Settings fontSize="small" sx={{ color: '#3D5467' }} />
+                  <Settings fontSize="small" sx={{ color: '#8B4513' }} />
                 </ListItemIcon>
                 <Typography variant="body2">Paramètres</Typography>
               </MenuItem>

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Container,
   Grid,
@@ -17,14 +17,14 @@ import {
   ListItemIcon,
   ListItemText,
   ListItemSecondaryAction,
-  IconButton,
   Switch,
   Dialog,
   DialogTitle,
   DialogContent,
   DialogActions,
   Alert,
-  CircularProgress
+  CircularProgress,
+  Snackbar
 } from '@mui/material';
 import {
   Edit,
@@ -36,62 +36,289 @@ import {
   Delete,
   Email,
   Person,
-  CalendarToday,
-  School,
   Badge,
   LibraryBooks,
   Bookmark,
-  History
+  History,
+  Phone,
+  CreditCard
 } from '@mui/icons-material';
 import { useTheme } from '@mui/material/styles';
 import useAuthStore from '../../store/authStore';
+import axiosInstance, { API_BASE_URL } from '../../api/axios.config';
 
 const Profile = () => {
   const theme = useTheme();
   const { user } = useAuthStore();
+  
+  // Helper function to get full image URL
+  const getImageUrl = (photoUrl) => {
+    if (!photoUrl) return null;
+    // If it's already a full URL (starts with http:// or https://)
+    if (photoUrl.startsWith('http://') || photoUrl.startsWith('https://')) {
+      return photoUrl;
+    }
+    // If it's a relative path, prepend the base URL
+    // Remove /api from base URL and add the photo path
+    const baseUrl = API_BASE_URL.replace('/api', '');
+    return `${baseUrl}${photoUrl.startsWith('/') ? photoUrl : '/' + photoUrl}`;
+  };
+  
+  // États
   const [isEditing, setIsEditing] = useState(false);
   const [openSecurityDialog, setOpenSecurityDialog] = useState(false);
+  const [openDeleteDialog, setOpenDeleteDialog] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [pageLoading, setPageLoading] = useState(true);
+  const [statistics, setStatistics] = useState(null);
+  const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' });
+  const [selectedPhoto, setSelectedPhoto] = useState(null);
+  const [photoPreview, setPhotoPreview] = useState(null);
+  
+  const [profile, setProfile] = useState(null);
   const [formData, setFormData] = useState({
-    firstName: 'John',
-    lastName: 'Doe',
-    email: user?.email || '',
-    phone: '+33 1 23 45 67 89',
-    institution: 'Université Paris-Saclay',
-    department: 'Informatique',
-    studentId: '21895674'
+    firstName: '',
+    lastName: '',
+    email: '',
+    phone: '',
+    identityCard: ''
   });
 
-  // Données simulées pour les statistiques
-  const userStats = [
-    { label: 'Livres empruntés', value: 24, icon: <LibraryBooks />, color: theme.palette.primary.main },
-    { label: 'En cours', value: 3, icon: <Bookmark />, color: theme.palette.warning.main },
-    { label: 'Historique', value: 21, icon: <History />, color: theme.palette.info.main },
-    { label: 'Favoris', value: 12, icon: <Bookmark />, color: theme.palette.success.main }
-  ];
+  const [passwordData, setPasswordData] = useState({
+    currentPassword: '',
+    newPassword: '',
+    confirmPassword: ''
+  });
 
+  const [deleteAccountData, setDeleteAccountData] = useState({
+    password: ''
+  });
+
+  // Charger les données au montage
+  useEffect(() => {
+    fetchProfile();
+    fetchStatistics();
+  }, []);
+
+  // === API CALLS ===
+  
+  const fetchProfile = async () => {
+    try {
+      setPageLoading(true);
+      const response = await axiosInstance.get('/profile');
+      console.log('Profile data:', response.data);
+      console.log('Photo URL from API:', response.data.photoUrl);
+      console.log('Full image URL:', getImageUrl(response.data.photoUrl));
+      setProfile(response.data);
+      setFormData({
+        firstName: response.data.firstName || '',
+        lastName: response.data.lastName || '',
+        email: response.data.email || '',
+        phone: response.data.phoneNumber || '',
+        identityCard: response.data.identityCard || ''
+      });
+    } catch (error) {
+      console.error('Error fetching profile:', error);
+      showSnackbar('Erreur lors du chargement du profil', 'error');
+    } finally {
+      setPageLoading(false);
+    }
+  };
+
+  const fetchStatistics = async () => {
+    try {
+      const response = await axiosInstance.get('/profile/statistics');
+      setStatistics(response.data);
+    } catch (error) {
+      console.error('Error fetching statistics:', error);
+      // Don't show error message, just log it
+      // Statistics are optional
+    }
+  };
+
+  const handleSave = async () => {
+    try {
+      setLoading(true);
+      const updateRequest = {
+        firstName: formData.firstName,
+        lastName: formData.lastName,
+        email: formData.email,
+        phone: formData.phone,
+        identityCard: formData.identityCard
+      };
+      
+      const response = await axiosInstance.put('/profile', updateRequest);
+      
+      setProfile(response.data);
+      setIsEditing(false);
+      showSnackbar('Profil mis à jour avec succès', 'success');
+    } catch (error) {
+      console.error('Error updating profile:', error);
+      showSnackbar(
+        error.response?.data?.message || 'Erreur lors de la mise à jour du profil',
+        'error'
+      );
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handlePhotoSelect = (event) => {
+    const file = event.target.files[0];
+    if (file) {
+      if (file.size > 5 * 1024 * 1024) { // 5MB limit
+        showSnackbar('La taille de l\'image ne doit pas dépasser 5MB', 'error');
+        return;
+      }
+      if (!file.type.startsWith('image/')) {
+        showSnackbar('Veuillez sélectionner une image valide', 'error');
+        return;
+      }
+      setSelectedPhoto(file);
+      setPhotoPreview(URL.createObjectURL(file));
+    }
+  };
+
+  const handlePhotoUpload = async () => {
+    if (!selectedPhoto) return;
+
+    try {
+      setLoading(true);
+      const formData = new FormData();
+      formData.append('file', selectedPhoto);
+
+      await axiosInstance.post('/profile/photo', formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data'
+        }
+      });
+
+      // Recharger le profil pour obtenir la nouvelle URL
+      await fetchProfile();
+      setSelectedPhoto(null);
+      setPhotoPreview(null);
+      showSnackbar('Photo de profil mise à jour avec succès', 'success');
+    } catch (error) {
+      console.error('Error uploading photo:', error);
+      showSnackbar(
+        error.response?.data?.message || 'Erreur lors de l\'upload de la photo',
+        'error'
+      );
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleDeletePhoto = async () => {
+    try {
+      setLoading(true);
+      await axiosInstance.delete('/profile/photo');
+      await fetchProfile();
+      showSnackbar('Photo de profil supprimée avec succès', 'success');
+    } catch (error) {
+      console.error('Error deleting photo:', error);
+      showSnackbar('Erreur lors de la suppression de la photo', 'error');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handlePreferenceChange = async (field, value) => {
+    try {
+      const preferencesRequest = {
+        emailNotifications: profile.emailNotifications,
+        publicProfile: profile.publicProfile,
+        language: profile.language,
+        theme: profile.theme,
+        [field]: value
+      };
+      
+      const response = await axiosInstance.put('/profile/preferences', preferencesRequest);
+      
+      setProfile(response.data);
+      showSnackbar('Préférences mises à jour', 'success');
+    } catch (error) {
+      console.error('Error updating preferences:', error);
+      showSnackbar('Erreur lors de la mise à jour des préférences', 'error');
+    }
+  };
+
+  const handleChangePassword = async () => {
+    if (passwordData.newPassword !== passwordData.confirmPassword) {
+      showSnackbar('Les mots de passe ne correspondent pas', 'error');
+      return;
+    }
+
+    if (passwordData.newPassword.length < 8) {
+      showSnackbar('Le mot de passe doit contenir au moins 8 caractères', 'error');
+      return;
+    }
+
+    try {
+      setLoading(true);
+      await axiosInstance.put('/profile/change-password', {
+        currentPassword: passwordData.currentPassword,
+        newPassword: passwordData.newPassword,
+        confirmPassword: passwordData.confirmPassword
+      });
+      
+      setOpenSecurityDialog(false);
+      setPasswordData({ currentPassword: '', newPassword: '', confirmPassword: '' });
+      showSnackbar('Mot de passe modifié avec succès. Veuillez vous reconnecter.', 'success');
+      
+      // Optionnel: déconnexion automatique après 2 secondes
+      setTimeout(() => {
+        useAuthStore.getState().logout();
+      }, 2000);
+    } catch (error) {
+      console.error('Error changing password:', error);
+      showSnackbar(
+        error.response?.data?.message || 'Erreur lors du changement de mot de passe',
+        'error'
+      );
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleDeleteAccount = async () => {
+    try {
+      setLoading(true);
+      await axiosInstance.delete('/profile/account', {
+        data: { password: deleteAccountData.password }
+      });
+      
+      showSnackbar('Compte supprimé avec succès', 'success');
+      
+      // Déconnexion et redirection après 2 secondes
+      setTimeout(() => {
+        useAuthStore.getState().logout();
+      }, 2000);
+    } catch (error) {
+      console.error('Error deleting account:', error);
+      showSnackbar(
+        error.response?.data?.message || 'Erreur lors de la suppression du compte',
+        'error'
+      );
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // === HANDLERS ===
+  
   const handleEditToggle = () => {
     if (isEditing) {
       // Réinitialiser les données si annulation
       setFormData({
-        firstName: 'John',
-        lastName: 'Doe',
-        email: user?.email || '',
-        phone: '+33 1 23 45 67 89',
-        institution: 'Université Paris-Saclay',
-        department: 'Informatique',
-        studentId: '21895674'
+        firstName: profile?.firstName || '',
+        lastName: profile?.lastName || '',
+        email: profile?.email || '',
+        phone: profile?.phoneNumber || '',
+        identityCard: profile?.identityCard || ''
       });
     }
     setIsEditing(!isEditing);
-  };
-
-  const handleSave = async () => {
-    setLoading(true);
-    // Simuler une requête API
-    await new Promise(resolve => setTimeout(resolve, 1500));
-    setLoading(false);
-    setIsEditing(false);
   };
 
   const handleInputChange = (field) => (event) => {
@@ -101,10 +328,21 @@ const Profile = () => {
     }));
   };
 
+  const showSnackbar = (message, severity) => {
+    setSnackbar({ open: true, message, severity });
+  };
+
+  const handleCloseSnackbar = () => {
+    setSnackbar({ ...snackbar, open: false });
+  };
+
+  // === UTILITY FUNCTIONS ===
+  
   const getRoleColor = (role) => {
     switch (role) {
       case 'ROLE_ETUDIANT': return theme.palette.success.main;
       case 'ROLE_PROFESSEUR': return theme.palette.info.main;
+      case 'ROLE_LECTEUR': return theme.palette.warning.main;
       case 'ROLE_ADMIN': return theme.palette.error.main;
       default: return theme.palette.secondary.main;
     }
@@ -114,10 +352,49 @@ const Profile = () => {
     switch (role) {
       case 'ROLE_ETUDIANT': return 'Étudiant';
       case 'ROLE_PROFESSEUR': return 'Professeur';
+      case 'ROLE_LECTEUR': return 'Lecteur';
       case 'ROLE_ADMIN': return 'Administrateur';
       default: return role;
     }
   };
+
+  // === LOADING STATE ===
+  
+  if (pageLoading) {
+    return (
+      <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '80vh' }}>
+        <CircularProgress size={60} />
+      </Box>
+    );
+  }
+
+  // Statistiques
+  const userStats = statistics ? [
+    { 
+      label: 'Livres empruntés', 
+      value: statistics.totalBorrowedBooks || 0, 
+      icon: <LibraryBooks />, 
+      color: theme.palette.primary.main 
+    },
+    { 
+      label: 'En cours', 
+      value: statistics.currentBorrowedBooks || 0, 
+      icon: <Bookmark />, 
+      color: theme.palette.warning.main 
+    },
+    { 
+      label: 'Retournés', 
+      value: statistics.returnedBooks || 0, 
+      icon: <History />, 
+      color: theme.palette.info.main 
+    },
+    { 
+      label: 'En retard', 
+      value: statistics.overdueBooks || 0, 
+      icon: <Bookmark />, 
+      color: theme.palette.error.main 
+    }
+  ] : [];
 
   return (
     <Container maxWidth="xl" sx={{ py: 4, mt: 8 }}>
@@ -186,6 +463,7 @@ const Profile = () => {
                     value={formData.email}
                     onChange={handleInputChange('email')}
                     disabled={!isEditing}
+                    type="email"
                     InputProps={{
                       startAdornment: <Email sx={{ mr: 1, color: theme.palette.text.secondary }} />
                     }}
@@ -198,39 +476,21 @@ const Profile = () => {
                     value={formData.phone}
                     onChange={handleInputChange('phone')}
                     disabled={!isEditing}
-                  />
-                </Grid>
-                <Grid item xs={12} md={6}>
-                  <TextField
-                    fullWidth
-                    label="Numéro étudiant"
-                    value={formData.studentId}
-                    onChange={handleInputChange('studentId')}
-                    disabled={!isEditing}
                     InputProps={{
-                      startAdornment: <Badge sx={{ mr: 1, color: theme.palette.text.secondary }} />
+                      startAdornment: <Phone sx={{ mr: 1, color: theme.palette.text.secondary }} />
                     }}
                   />
                 </Grid>
                 <Grid item xs={12} md={6}>
                   <TextField
                     fullWidth
-                    label="Institution"
-                    value={formData.institution}
-                    onChange={handleInputChange('institution')}
+                    label="Carte d'identité"
+                    value={formData.identityCard}
+                    onChange={handleInputChange('identityCard')}
                     disabled={!isEditing}
                     InputProps={{
-                      startAdornment: <School sx={{ mr: 1, color: theme.palette.text.secondary }} />
+                      startAdornment: <CreditCard sx={{ mr: 1, color: theme.palette.text.secondary }} />
                     }}
-                  />
-                </Grid>
-                <Grid item xs={12} md={6}>
-                  <TextField
-                    fullWidth
-                    label="Département"
-                    value={formData.department}
-                    onChange={handleInputChange('department')}
-                    disabled={!isEditing}
                   />
                 </Grid>
               </Grid>
@@ -257,62 +517,66 @@ const Profile = () => {
           </Card>
 
           {/* Section Statistiques */}
-          <Card>
-            <CardContent sx={{ p: 4 }}>
-              <Typography variant="h5" fontWeight="600" sx={{ mb: 3 }}>
-                Mes Statistiques
-              </Typography>
-              <Grid container spacing={3}>
-                {userStats.map((stat, index) => (
-                  <Grid item xs={12} sm={6} key={index}>
-                    <Paper
-                      sx={{
-                        p: 3,
-                        textAlign: 'center',
-                        background: `linear-gradient(135deg, ${stat.color}15 0%, ${stat.color}08 100%)`,
-                        border: `1px solid ${stat.color}20`,
-                        transition: 'all 0.3s ease',
-                        '&:hover': {
-                          transform: 'translateY(-4px)',
-                          boxShadow: theme.shadows[4]
-                        }
-                      }}
-                    >
-                      <Box
+          {statistics && (
+            <Card>
+              <CardContent sx={{ p: 4 }}>
+                <Typography variant="h5" fontWeight="600" sx={{ mb: 3 }}>
+                  Mes Statistiques
+                </Typography>
+                <Grid container spacing={3}>
+                  {userStats.map((stat, index) => (
+                    <Grid item xs={12} sm={6} key={index}>
+                      <Paper
                         sx={{
-                          display: 'inline-flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          width: 60,
-                          height: 60,
-                          borderRadius: '50%',
-                          bgcolor: `${stat.color}20`,
-                          mb: 2,
-                          color: stat.color
+                          p: 3,
+                          textAlign: 'center',
+                          background: `linear-gradient(135deg, ${stat.color}15 0%, ${stat.color}08 100%)`,
+                          border: `1px solid ${stat.color}20`,
+                          transition: 'all 0.3s ease',
+                          '&:hover': {
+                            transform: 'translateY(-4px)',
+                            boxShadow: theme.shadows[4]
+                          }
                         }}
                       >
-                        {stat.icon}
-                      </Box>
-                      <Typography variant="h4" fontWeight="700" color={stat.color}>
-                        {stat.value}
-                      </Typography>
-                      <Typography variant="body2" color="text.secondary">
-                        {stat.label}
-                      </Typography>
-                    </Paper>
-                  </Grid>
-                ))}
-              </Grid>
-            </CardContent>
-          </Card>
+                        <Box
+                          sx={{
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            width: 60,
+                            height: 60,
+                            borderRadius: '50%',
+                            bgcolor: `${stat.color}20`,
+                            mb: 2,
+                            color: stat.color
+                          }}
+                        >
+                          {stat.icon}
+                        </Box>
+                        <Typography variant="h4" fontWeight="700" color={stat.color}>
+                          {stat.value}
+                        </Typography>
+                        <Typography variant="body2" color="text.secondary">
+                          {stat.label}
+                        </Typography>
+                      </Paper>
+                    </Grid>
+                  ))}
+                </Grid>
+              </CardContent>
+            </Card>
+          )}
         </Grid>
 
-        {/* Colonne de droite - Informations complémentaires */}
+        {/* Colonne de droite */}
         <Grid item xs={12} lg={4}>
-          {/* Carte Photo de profil et Rôles */}
+          {/* Carte Photo de profil */}
           <Card sx={{ mb: 4 }}>
             <CardContent sx={{ p: 4, textAlign: 'center' }}>
               <Avatar
+                src={photoPreview || getImageUrl(profile?.photoUrl)}
+                alt={`${profile?.firstName} ${profile?.lastName}`}
                 sx={{
                   width: 120,
                   height: 120,
@@ -324,20 +588,26 @@ const Profile = () => {
                   border: `4px solid ${theme.palette.background.paper}`,
                   boxShadow: theme.shadows[4]
                 }}
+                imgProps={{
+                  onError: (e) => {
+                    console.error('Image load error:', profile?.photoUrl);
+                    e.target.style.display = 'none';
+                  }
+                }}
               >
-                {user?.username?.charAt(0).toUpperCase() || 'U'}
+                {!profile?.photoUrl && !photoPreview && profile?.firstName?.charAt(0)?.toUpperCase()}
               </Avatar>
               
               <Typography variant="h5" fontWeight="600" gutterBottom>
-                {formData.firstName} {formData.lastName}
+                {profile?.firstName} {profile?.lastName}
               </Typography>
               
               <Typography variant="body2" color="text.secondary" gutterBottom>
-                {formData.institution}
+                {profile?.username}
               </Typography>
 
-              <Box sx={{ mt: 2, display: 'flex', flexDirection: 'column', gap: 1 }}>
-                {user?.roles?.map((role, index) => (
+              <Box sx={{ mt: 2, display: 'flex', flexDirection: 'column', gap: 1, alignItems: 'center' }}>
+                {profile?.roles?.map((role, index) => (
                   <Chip
                     key={index}
                     label={getRoleLabel(role)}
@@ -351,14 +621,60 @@ const Profile = () => {
                 ))}
               </Box>
 
-              <Button
-                fullWidth
-                variant="outlined"
-                sx={{ mt: 3 }}
-                startIcon={<Edit />}
-              >
-                Changer la photo
-              </Button>
+              <input
+                accept="image/*"
+                style={{ display: 'none' }}
+                id="photo-upload"
+                type="file"
+                onChange={handlePhotoSelect}
+              />
+              <label htmlFor="photo-upload">
+                <Button
+                  fullWidth
+                  variant="outlined"
+                  component="span"
+                  sx={{ mt: 3 }}
+                  startIcon={<Edit />}
+                >
+                  Changer la photo
+                </Button>
+              </label>
+
+              {selectedPhoto && (
+                <Box sx={{ mt: 2, display: 'flex', gap: 1 }}>
+                  <Button
+                    fullWidth
+                    variant="contained"
+                    onClick={handlePhotoUpload}
+                    disabled={loading}
+                  >
+                    {loading ? <CircularProgress size={20} /> : 'Confirmer'}
+                  </Button>
+                  <Button
+                    fullWidth
+                    variant="outlined"
+                    onClick={() => {
+                      setSelectedPhoto(null);
+                      setPhotoPreview(null);
+                    }}
+                  >
+                    Annuler
+                  </Button>
+                </Box>
+              )}
+
+              {profile?.photoUrl && !selectedPhoto && (
+                <Button
+                  fullWidth
+                  variant="outlined"
+                  color="error"
+                  sx={{ mt: 2 }}
+                  onClick={handleDeletePhoto}
+                  disabled={loading}
+                >
+                  Supprimer la photo
+                </Button>
+              )}
             </CardContent>
           </Card>
 
@@ -381,7 +697,10 @@ const Profile = () => {
                     secondary="Recevoir les alertes de retour" 
                   />
                   <ListItemSecondaryAction>
-                    <Switch defaultChecked />
+                    <Switch 
+                      checked={profile?.emailNotifications || false}
+                      onChange={(e) => handlePreferenceChange('emailNotifications', e.target.checked)}
+                    />
                   </ListItemSecondaryAction>
                 </ListItem>
                 <ListItem>
@@ -393,14 +712,17 @@ const Profile = () => {
                     secondary="Rendre mon profil visible" 
                   />
                   <ListItemSecondaryAction>
-                    <Switch />
+                    <Switch 
+                      checked={profile?.publicProfile || false}
+                      onChange={(e) => handlePreferenceChange('publicProfile', e.target.checked)}
+                    />
                   </ListItemSecondaryAction>
                 </ListItem>
               </List>
             </CardContent>
           </Card>
 
-          {/* Carte Actions rapides */}
+          {/* Carte Actions */}
           <Card>
             <CardContent sx={{ p: 0 }}>
               <Box sx={{ p: 3, pb: 2 }}>
@@ -419,7 +741,7 @@ const Profile = () => {
                     secondary="Changer le mot de passe" 
                   />
                 </ListItem>
-                <ListItem button>
+                <ListItem button onClick={() => setOpenDeleteDialog(true)}>
                   <ListItemIcon>
                     <Delete color="error" />
                   </ListItemIcon>
@@ -457,29 +779,106 @@ const Profile = () => {
             label="Mot de passe actuel"
             type="password"
             margin="normal"
+            value={passwordData.currentPassword}
+            onChange={(e) => setPasswordData({ ...passwordData, currentPassword: e.target.value })}
           />
           <TextField
             fullWidth
             label="Nouveau mot de passe"
             type="password"
             margin="normal"
+            value={passwordData.newPassword}
+            onChange={(e) => setPasswordData({ ...passwordData, newPassword: e.target.value })}
+            helperText="Minimum 8 caractères"
           />
           <TextField
             fullWidth
             label="Confirmer le nouveau mot de passe"
             type="password"
             margin="normal"
+            value={passwordData.confirmPassword}
+            onChange={(e) => setPasswordData({ ...passwordData, confirmPassword: e.target.value })}
+            error={Boolean(passwordData.confirmPassword && passwordData.newPassword !== passwordData.confirmPassword)}
+            helperText={
+              passwordData.confirmPassword && passwordData.newPassword !== passwordData.confirmPassword 
+                ? "Les mots de passe ne correspondent pas" 
+                : ""
+            }
           />
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setOpenSecurityDialog(false)}>
             Annuler
           </Button>
-          <Button variant="contained">
-            Changer le mot de passe
+          <Button 
+            variant="contained" 
+            onClick={handleChangePassword}
+            disabled={
+              loading || 
+              !passwordData.currentPassword || 
+              !passwordData.newPassword || 
+              !passwordData.confirmPassword ||
+              passwordData.newPassword !== passwordData.confirmPassword
+            }
+          >
+            {loading ? <CircularProgress size={24} /> : 'Changer le mot de passe'}
           </Button>
         </DialogActions>
       </Dialog>
+
+      {/* Dialog Suppression de compte */}
+      <Dialog 
+        open={openDeleteDialog} 
+        onClose={() => setOpenDeleteDialog(false)}
+        maxWidth="sm"
+        fullWidth
+      >
+        <DialogTitle>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+            <Delete color="error" />
+            <Typography variant="h6">Supprimer le compte</Typography>
+          </Box>
+        </DialogTitle>
+        <DialogContent>
+          <Alert severity="error" sx={{ mb: 3 }}>
+            Cette action est irréversible. Toutes vos données seront définitivement supprimées.
+          </Alert>
+          <TextField
+            fullWidth
+            label="Confirmer avec votre mot de passe"
+            type="password"
+            margin="normal"
+            value={deleteAccountData.password}
+            onChange={(e) => setDeleteAccountData({ password: e.target.value })}
+            placeholder="Entrez votre mot de passe pour confirmer"
+          />
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setOpenDeleteDialog(false)}>
+            Annuler
+          </Button>
+          <Button 
+            variant="contained" 
+            color="error"
+            onClick={handleDeleteAccount}
+            disabled={loading || !deleteAccountData.password}
+          >
+            {loading ? <CircularProgress size={24} /> : 'Supprimer définitivement'}
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Snackbar pour les notifications */}
+      <Snackbar
+        open={snackbar.open}
+        autoHideDuration={6000}
+        onClose={handleCloseSnackbar}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+      >
+        <Alert onClose={handleCloseSnackbar} severity={snackbar.severity} sx={{ width: '100%' }}>
+          {snackbar.message}
+        </Alert>
+      </Snackbar>
     </Container>
   );
 };

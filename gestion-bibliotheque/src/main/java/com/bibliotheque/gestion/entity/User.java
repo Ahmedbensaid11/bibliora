@@ -48,6 +48,23 @@ public class User {
     @Column(length = 20)
     private String phoneNumber;
 
+    // Profile fields (moved from UserPreferences)
+    @Column(length = 500)
+    private String photoUrl;
+
+    @Column(length = 50)
+    private String identityCard;
+
+
+
+    @Column(length = 10)
+    @Builder.Default
+    private String language = "fr";
+
+    @Column(length = 20)
+    @Builder.Default
+    private String theme = "light";
+
     @ManyToMany(fetch = FetchType.EAGER)
     @JoinTable(
             name = "user_roles",
@@ -97,7 +114,13 @@ public class User {
         }
         return false;
     }
+    @Column(nullable = false, columnDefinition = "boolean default true")
+    @Builder.Default
+    private Boolean emailNotifications = true;
 
+    @Column(nullable = false, columnDefinition = "boolean default false")
+    @Builder.Default
+    private Boolean publicProfile = false;
     /**
      * Incrémente le nombre de tentatives de connexion échouées
      */

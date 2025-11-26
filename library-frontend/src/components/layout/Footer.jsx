@@ -1,13 +1,13 @@
 import { Box, Container, Grid, Typography, Link, IconButton, Divider } from '@mui/material';
 import { 
-  LibraryBooks,
   Facebook,
   Twitter,
   Instagram,
   LinkedIn,
   Email,
   Phone,
-  LocationOn
+  LocationOn,
+  MenuBook
 } from '@mui/icons-material';
 
 const Footer = () => {
@@ -37,7 +37,7 @@ const Footer = () => {
     <Box
       component="footer"
       sx={{
-        bgcolor: '#2C3E50',
+        bgcolor: '#8B4513',
         color: 'white',
         pt: 4,
         pb: 3,
@@ -51,13 +51,39 @@ const Footer = () => {
     >
       <Container maxWidth={false} disableGutters sx={{ px: { xs: 2, sm: 3, md: 4 } }}>
         <Grid container spacing={4} sx={{ mb: 3 }}>
-          {/* Brand Section */}
+          {/* Brand Section with updated logo */}
           <Grid item xs={12} md={4}>
-            <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
-              <LibraryBooks sx={{ mr: 1, fontSize: 28 }} />
-              <Typography variant="h6" fontWeight="bold">
-                BiblioTech
-              </Typography>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mb: 2 }}>
+              <Box
+                sx={{
+                  bgcolor: '#FFF8F0',
+                  p: 1,
+                  borderRadius: '50%',
+                  border: '2px solid rgba(255, 248, 240, 0.3)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  boxShadow: 'inset 0 2px 4px rgba(0,0,0,0.1)'
+                }}
+              >
+                <MenuBook sx={{ fontSize: 24, color: '#8B4513' }} />
+              </Box>
+              <Box sx={{ display: 'flex', flexDirection: 'column' }}>
+                <Typography variant="h6" sx={{ fontWeight: 'bold', fontFamily: 'serif', letterSpacing: '0.5px', lineHeight: 1.2 }}>
+                  BiblioTech
+                </Typography>
+                <Typography
+                  variant="caption"
+                  sx={{
+                    fontSize: '0.625rem',
+                    textTransform: 'uppercase',
+                    letterSpacing: '2px',
+                    color: 'rgba(255, 248, 240, 0.8)'
+                  }}
+                >
+                  Savoir & Tradition
+                </Typography>
+              </Box>
             </Box>
             <Typography variant="body2" sx={{ mb: 2, opacity: 0.8, lineHeight: 1.6, maxWidth: 300 }}>
               Votre bibliothèque numérique moderne.

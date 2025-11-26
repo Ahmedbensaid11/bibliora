@@ -80,7 +80,7 @@ const Login = () => {
 
     try {
       await login({
-        email: formData.usernameOrEmail, // This will be transformed to usernameOrEmail in authService
+        email: formData.usernameOrEmail,
         password: formData.password,
       });
       navigate('/dashboard');
@@ -96,14 +96,14 @@ const Login = () => {
         height: '100%',
         width: '100vw',
         display: 'flex',
-        background: 'linear-gradient(135deg, #1A252F 0%, #2C3E50 50%, #34495E 100%)',
+        background: 'linear-gradient(135deg, #5D2E0F 0%, #8B4513 50%, #A0522D 100%)',
         position: 'relative',
         overflow: 'hidden',
         margin: 0,
         padding: 0,
       }}
     >
-      {/* Animations de fond améliorées */}
+      {/* Animated background */}
       <Box
         sx={{
           position: 'absolute',
@@ -158,7 +158,7 @@ const Login = () => {
         }}
       >
         <Grid container spacing={0} sx={{ width: '100%', minHeight: { xs: '100vh', md: '90vh' }, margin: 0 }}>
-          {/* Colonne Gauche - Informations (cachée sur mobile) */}
+          {/* Left Column - Information */}
           <Grid 
             item 
             xs={12} 
@@ -241,7 +241,7 @@ const Login = () => {
                             variant="h6" 
                             fontWeight="600" 
                             gutterBottom
-                            sx={{ color: 'white',fontSize: { md: '1rem', lg: '1.1rem', xl: '1.25rem' } }}
+                            sx={{ color: 'white', fontSize: { md: '1rem', lg: '1.1rem', xl: '1.25rem' } }}
                           >
                             {feature.title}
                           </Typography>
@@ -263,7 +263,7 @@ const Login = () => {
             </motion.div>
           </Grid>
 
-          {/* Colonne Droite - Formulaire */}
+          {/* Right Column - Form */}
           <Grid 
             item 
             xs={12} 
@@ -282,7 +282,7 @@ const Login = () => {
               transition={{ duration: 0.6, delay: 0.2 }}
               style={{ width: '100%', maxWidth: 520 }}
             >
-              {/* Logo mobile uniquement */}
+              {/* Mobile logo */}
               {isMobile && (
                 <Box sx={{ textAlign: 'center', mb: 3 }}>
                   <Box
@@ -323,7 +323,7 @@ const Login = () => {
                         width: { xs: 100, sm: 150, md: 200 },
                         height: { xs: 100, sm: 150, md: 200 },
                         mb: 3,
-                        filter: 'drop-shadow(0 4px 12px rgba(44, 62, 80, 0.3))',
+                        filter: 'drop-shadow(0 4px 12px rgba(139, 69, 19, 0.3))',
                       }}
                     />
                   </motion.div>
@@ -370,7 +370,7 @@ const Login = () => {
                         transition: 'all 0.3s ease',
                         '&:hover': {
                           transform: 'translateY(-2px)',
-                          boxShadow: '0 4px 12px rgba(44, 62, 80, 0.1)',
+                          boxShadow: '0 4px 12px rgba(139, 69, 19, 0.1)',
                         },
                       },
                     }}
@@ -409,7 +409,7 @@ const Login = () => {
                         transition: 'all 0.3s ease',
                         '&:hover': {
                           transform: 'translateY(-2px)',
-                          boxShadow: '0 4px 12px rgba(44, 62, 80, 0.1)',
+                          boxShadow: '0 4px 12px rgba(139, 69, 19, 0.1)',
                         },
                       },
                     }}
@@ -437,18 +437,18 @@ const Login = () => {
                     <Link
                       to="/forgot-password"
                       style={{
-                        color: '#2C3E50',
+                        color: '#8B4513',
                         textDecoration: 'none',
                         fontSize: '0.875rem',
                         fontWeight: 500,
                         transition: 'all 0.3s ease',
                       }}
                       onMouseEnter={(e) => {
-                        e.target.style.color = '#1A252F';
+                        e.target.style.color = '#5D2E0F';
                         e.target.style.textDecoration = 'underline';
                       }}
                       onMouseLeave={(e) => {
-                        e.target.style.color = '#2C3E50';
+                        e.target.style.color = '#8B4513';
                         e.target.style.textDecoration = 'none';
                       }}
                     >
@@ -468,12 +468,12 @@ const Login = () => {
                       mb: 2,
                       fontSize: { xs: '0.95rem', md: '1rem' },
                       fontWeight: 600,
-                      background: 'linear-gradient(135deg, #34495E 0%, #2C3E50 100%)',
-                      boxShadow: '0 4px 14px rgba(44, 62, 80, 0.4)',
+                      background: 'linear-gradient(135deg, #A0522D 0%, #8B4513 100%)',
+                      boxShadow: '0 4px 14px rgba(139, 69, 19, 0.4)',
                       transition: 'all 0.3s ease',
                       '&:hover': {
-                        background: 'linear-gradient(135deg, #2C3E50 0%, #1A252F 100%)',
-                        boxShadow: '0 6px 20px rgba(44, 62, 80, 0.6)',
+                        background: 'linear-gradient(135deg, #8B4513 0%, #5D2E0F 100%)',
+                        boxShadow: '0 6px 20px rgba(139, 69, 19, 0.6)',
                         transform: 'translateY(-2px)',
                       },
                     }}
@@ -493,17 +493,17 @@ const Login = () => {
                       <Link
                         to="/register"
                         style={{
-                          color: '#2C3E50',
+                          color: '#8B4513',
                           textDecoration: 'none',
                           fontWeight: 600,
                           transition: 'all 0.3s ease',
                         }}
                         onMouseEnter={(e) => {
-                          e.target.style.color = '#1A252F';
+                          e.target.style.color = '#5D2E0F';
                           e.target.style.textDecoration = 'underline';
                         }}
                         onMouseLeave={(e) => {
-                          e.target.style.color = '#2C3E50';
+                          e.target.style.color = '#8B4513';
                           e.target.style.textDecoration = 'none';
                         }}
                       >

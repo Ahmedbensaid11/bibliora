@@ -98,7 +98,7 @@ public class SecurityConfig {
                 .authorizeHttpRequests(auth -> auth
                         // Endpoints publics
                         .requestMatchers("/api/auth/**").permitAll()
-                        .requestMatchers("/api/public/**").permitAll()
+                        .requestMatchers("/api/public/**","/uploads/**").permitAll()
 
                         // Swagger/OpenAPI
                         .requestMatchers("/swagger-ui/**", "/v3/api-docs/**", "/swagger-ui.html").permitAll()
@@ -110,7 +110,7 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.DELETE, "/api/books/**").hasRole("ADMIN")
 
                         // Endpoints pour lecteurs et admins
-                        .requestMatchers(HttpMethod.GET, "/api/books/**").hasAnyRole("LECTEUR", "ADMIN")
+                        .requestMatchers(HttpMethod.GET, "/api/books/**" ).hasAnyRole("LECTEUR", "ADMIN")
                         .requestMatchers("/api/emprunts/**").hasAnyRole("LECTEUR", "ADMIN")
 
                         // Tous les autres endpoints nécessitent une authentification

@@ -13,24 +13,24 @@ const theme = createTheme({
   },
   palette: {
     primary: {
-      main: '#2C3E50',
-      light: '#34495E',
-      dark: '#1A252F',
+      main: '#8B4513',        // Saddle brown - main brown color
+      light: '#A0522D',       // Sienna - lighter brown
+      dark: '#5D2E0F',        // Dark brown
       contrastText: '#FFFFFF',
     },
     secondary: {
-      main: '#95A5A6',
-      light: '#BDC3C7',
-      dark: '#7F8C8D',
+      main: '#D2691E',        // Chocolate - warm secondary
+      light: '#E89B5D',       // Light chocolate
+      dark: '#A0522D',        // Dark chocolate
       contrastText: '#FFFFFF',
     },
     background: {
-      default: '#F5F6FA',
+      default: '#FFF8F0',     // Warm off-white
       paper: '#FFFFFF',
     },
     text: {
-      primary: '#2C3E50',
-      secondary: '#7F8C8D',
+      primary: '#3E2723',     // Dark brown for text
+      secondary: '#6D4C41',   // Medium brown for secondary text
     },
     success: {
       main: '#27AE60',
@@ -41,12 +41,12 @@ const theme = createTheme({
       light: '#EC7063',
     },
     warning: {
-      main: '#F39C12',
+      main: '#F39C12',        // Golden orange - for "lumière" accent
       light: '#F1C40F',
     },
     info: {
-      main: '#3498DB',
-      light: '#5DADE2',
+      main: '#8B4513',        // Brown for info
+      light: '#A0522D',
     },
   },
   typography: {
@@ -54,32 +54,32 @@ const theme = createTheme({
     h1: {
       fontSize: '2.5rem',
       fontWeight: 700,
-      color: '#2C3E50',
+      color: '#3E2723',
     },
     h2: {
       fontSize: '2rem',
       fontWeight: 600,
-      color: '#2C3E50',
+      color: '#3E2723',
     },
     h3: {
       fontSize: '1.75rem',
       fontWeight: 600,
-      color: '#2C3E50',
+      color: '#3E2723',
     },
     h4: {
       fontSize: '1.5rem',
       fontWeight: 600,
-      color: '#2C3E50',
+      color: '#3E2723',
     },
     h5: {
       fontSize: '1.25rem',
       fontWeight: 500,
-      color: '#2C3E50',
+      color: '#3E2723',
     },
     h6: {
       fontSize: '1rem',
       fontWeight: 500,
-      color: '#2C3E50',
+      color: '#3E2723',
     },
     button: {
       textTransform: 'none',
@@ -91,12 +91,12 @@ const theme = createTheme({
   },
   shadows: [
     'none',
-    '0px 2px 4px rgba(44, 62, 80, 0.05)',
-    '0px 4px 8px rgba(44, 62, 80, 0.08)',
-    '0px 8px 16px rgba(44, 62, 80, 0.1)',
-    '0px 12px 24px rgba(44, 62, 80, 0.12)',
-    '0px 16px 32px rgba(44, 62, 80, 0.15)',
-    ...Array(19).fill('0px 20px 40px rgba(44, 62, 80, 0.2)'),
+    '0px 2px 4px rgba(139, 69, 19, 0.05)',
+    '0px 4px 8px rgba(139, 69, 19, 0.08)',
+    '0px 8px 16px rgba(139, 69, 19, 0.1)',
+    '0px 12px 24px rgba(139, 69, 19, 0.12)',
+    '0px 16px 32px rgba(139, 69, 19, 0.15)',
+    ...Array(19).fill('0px 20px 40px rgba(139, 69, 19, 0.2)'),
   ],
   components: {
     MuiCssBaseline: {
@@ -128,7 +128,7 @@ const theme = createTheme({
           fontWeight: 600,
           boxShadow: 'none',
           '&:hover': {
-            boxShadow: '0px 4px 12px rgba(44, 62, 80, 0.15)',
+            boxShadow: '0px 4px 12px rgba(139, 69, 19, 0.15)',
           },
         },
         contained: {
@@ -145,7 +145,7 @@ const theme = createTheme({
           '& .MuiOutlinedInput-root': {
             borderRadius: 10,
             '&:hover fieldset': {
-              borderColor: '#2C3E50',
+              borderColor: '#8B4513',
             },
           },
         },
@@ -155,10 +155,10 @@ const theme = createTheme({
       styleOverrides: {
         root: {
           borderRadius: 16,
-          boxShadow: '0px 4px 12px rgba(44, 62, 80, 0.08)',
+          boxShadow: '0px 4px 12px rgba(139, 69, 19, 0.08)',
           transition: 'all 0.3s ease',
           '&:hover': {
-            boxShadow: '0px 8px 24px rgba(44, 62, 80, 0.12)',
+            boxShadow: '0px 8px 24px rgba(139, 69, 19, 0.12)',
             transform: 'translateY(-4px)',
           },
         },
