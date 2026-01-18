@@ -4,8 +4,10 @@ import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 
 import java.time.LocalDateTime;
+import java.util.Date;
 import java.util.Set;
 import java.util.HashSet;
 
@@ -25,7 +27,7 @@ public class Book {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(unique = true, nullable = false, length = 17)
+    @Column(unique = true, nullable = false, length = 100)
     private String isbn; // ISBN-13 format
 
     @Column(nullable = false, length = 500)
@@ -39,12 +41,23 @@ public class Book {
 
     @Column(name = "publication_year")
     private Integer publicationYear;
+    @Column(name = "cover_url", length = 500)
+    private String coverUrl;
 
+    @Column(name = "number_of_pages")
+    private Integer numberOfPages;
+
+    @Column(name = "price")
+    private Double price;
+
+    @Column(length = 50)
+    private String language;
     @Column(length = 100)
     private String genre;
 
-    @Column(length = 2000)
-    private String summary; // Résumé
+    @Column(columnDefinition = "TEXT")
+    private String summary;
+
 
     // Stock management
     @Column(name = "total_copies", nullable = false)
@@ -68,6 +81,7 @@ public class Book {
             joinColumns = @JoinColumn(name = "book_id"),
             inverseJoinColumns = @JoinColumn(name = "category_id")
     )
+    @JsonIgnoreProperties({"books", "parent", "children"})  // ADD THIS LINE
     @Builder.Default
     private Set<Category> categories = new HashSet<>();
 
@@ -119,6 +133,7 @@ public class Book {
     public boolean isAvailable() {
         return status == BookStatus.AVAILABLE && availableCopies > 0;
     }
+
     public void clearCategories() {
         if (categories != null) {
             for (Category category : categories) {

@@ -42,7 +42,9 @@ import {
   CalendarToday,
   LocalLibrary,
   BarChart,
-  RecentActors
+  RecentActors,
+  CloudUpload,  // Add this
+
 } from '@mui/icons-material';
 import { useTheme } from '@mui/material/styles';
 import useAuthStore from '../../store/authStore';
@@ -53,7 +55,8 @@ const Dashboard = () => {
   const [stats, setStats] = useState({});
   const [recentActivity, setRecentActivity] = useState([]);
   const [isAdmin, setIsAdmin] = useState(false);
-
+  const [importing, setImporting] = useState(false);
+  const [importResult, setImportResult] = useState(null);
   // Vérifier le rôle de l'utilisateur
   useEffect(() => {
     const admin = user?.roles?.includes('ROLE_ADMIN') || user?.roles?.includes('ROLE_EMPLOYEE');
@@ -106,7 +109,54 @@ const Dashboard = () => {
       ]);
     }
   };
+// Fonction pour importer CSV
+  const handleCsvImport = async (event) => {
+    const file = event.target.files[0];
+    if (!file) return;
 
+    setImporting(true);
+    setImportResult(null);
+
+    const formData = new FormData();
+    formData.append('file', file);
+
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch('http://localhost:8080/api/books/import', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        },
+        body: formData
+      });
+
+      const data = await response.json();
+
+      if (data.success) {
+        setImportResult({
+          type: 'success',
+          message: data.message,
+          details: data.data
+        });
+        // Refresh stats after import
+        loadDashboardData(true);
+      } else {
+        setImportResult({
+          type: 'error',
+          message: data.message || 'Erreur lors de l\'import'
+        });
+      }
+    } catch (error) {
+      setImportResult({
+        type: 'error',
+        message: 'Erreur de connexion au serveur'
+      });
+    } finally {
+      setImporting(false);
+      // Reset file input
+      event.target.value = '';
+    }
+  };
   // Composant de carte de statistique réutilisable
   const StatCard = ({ title, value, subtitle, icon, color, progress }) => (
     <Card sx={{ height: '100%', transition: 'all 0.3s ease', '&:hover': { transform: 'translateY(-4px)' } }}>
@@ -345,6 +395,26 @@ const Dashboard = () => {
               <Typography variant="h5" fontWeight="600" sx={{ mb: 3 }}>
                 Actions Rapides
               </Typography>
+
+              {/* Import Result Alert */}
+              {importResult && (
+                  <Alert
+                      severity={importResult.type}
+                      sx={{ mb: 2 }}
+                      onClose={() => setImportResult(null)}
+                  >
+                    <Typography variant="body2" fontWeight="600">
+                      {importResult.message}
+                    </Typography>
+                    {importResult.details && (
+                        <Typography variant="caption" display="block">
+                          {importResult.details.successCount} ajoutés, {importResult.details.skipCount} ignorés
+                          {importResult.details.errors?.length > 0 && `, ${importResult.details.errors.length} erreurs`}
+                        </Typography>
+                    )}
+                  </Alert>
+              )}
+
               <List>
                 <ListItem button sx={{ borderRadius: 2, mb: 1 }}>
                   <ListItemIcon>
@@ -352,6 +422,45 @@ const Dashboard = () => {
                   </ListItemIcon>
                   <ListItemText primary="Ajouter un livre" secondary="Nouvelle acquisition" />
                 </ListItem>
+
+                {/* Importer CSV Button */}
+                <ListItem
+                    component="label"
+                    button
+                    sx={{
+                      borderRadius: 2,
+                      mb: 1,
+                      bgcolor: importing ? 'action.disabledBackground' : 'transparent',
+                      cursor: importing ? 'wait' : 'pointer'
+                    }}
+                >
+                  <ListItemIcon>
+                    <CloudUpload color="primary" />
+                  </ListItemIcon>
+                  <ListItemText
+                      primary={importing ? "Import en cours..." : "Importer CSV"}
+                      secondary="Import en masse de livres"
+                  />
+                  {importing && (
+                      <LinearProgress
+                          sx={{
+                            position: 'absolute',
+                            bottom: 0,
+                            left: 0,
+                            right: 0,
+                            borderRadius: '0 0 8px 8px'
+                          }}
+                      />
+                  )}
+                  <input
+                      type="file"
+                      accept=".csv"
+                      hidden
+                      onChange={handleCsvImport}
+                      disabled={importing}
+                  />
+                </ListItem>
+
                 <ListItem button sx={{ borderRadius: 2, mb: 1 }}>
                   <ListItemIcon>
                     <People color="primary" />
@@ -373,7 +482,6 @@ const Dashboard = () => {
               </List>
             </CardContent>
           </Card>
-
           {/* Statistiques de disponibilité */}
           <Card>
             <CardContent>

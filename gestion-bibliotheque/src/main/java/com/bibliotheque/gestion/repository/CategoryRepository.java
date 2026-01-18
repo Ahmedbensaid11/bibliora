@@ -23,7 +23,7 @@ public interface CategoryRepository extends JpaRepository<Category, Long> {
     List<Category> findByNameContainingIgnoreCaseAndActiveTrue(String name);
 
     // Hierarchy-specific queries
-
+    Optional<Category> findByName(String name);
     /**
      * Trouve toutes les catégories racines (sans parent)
      */
