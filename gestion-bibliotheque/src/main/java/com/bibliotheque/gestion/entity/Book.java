@@ -1,5 +1,6 @@
 package com.bibliotheque.gestion.entity;
 
+import com.fasterxml.jackson.annotation.JsonManagedReference;
 import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;
@@ -69,6 +70,7 @@ public class Book {
             inverseJoinColumns = @JoinColumn(name = "category_id")
     )
     @Builder.Default
+    @JsonManagedReference
     private Set<Category> categories = new HashSet<>();
 
     // Audit fields

@@ -1,9 +1,11 @@
 package com.bibliotheque.gestion.service;
 
 import com.bibliotheque.gestion.dto.*;
+import com.bibliotheque.gestion.entity.Loan;
 import com.bibliotheque.gestion.entity.User;
 import com.bibliotheque.gestion.exception.BadRequestException;
 import com.bibliotheque.gestion.exception.ResourceNotFoundException;
+import com.bibliotheque.gestion.repository.LoanRepository;
 import com.bibliotheque.gestion.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -17,6 +19,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
+import java.time.LocalDate;
 import java.util.Arrays;
 import java.util.List;
 import java.util.UUID;
@@ -30,7 +33,7 @@ import java.util.stream.Collectors;
 @Slf4j
 @Transactional
 public class UserProfileService {
-
+    private final LoanRepository loanRepository;
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
 
@@ -155,24 +158,40 @@ public class UserProfileService {
     }
 
     /**
-     * Récupère les statistiques d'un utilisateur
-     * Note: Cette méthode retourne des données simulées
-     * Vous devrez l'adapter selon votre logique métier
+     * Récupère les statistiques d'un utilisateur (REAL DATA)
      */
     @Transactional(readOnly = true)
     public UserStatisticsResponse getUserStatistics(String username) {
         User user = findUserByUsername(username);
+        Long userId = user.getId();
+        LocalDate today = LocalDate.now();
 
-        // TODO: Implémenter la vraie logique de récupération des statistiques
-        // à partir de vos entités Book, Borrow, etc.
+        // Total borrowed books (all time - all statuses except CANCELLED)
+        Long totalBorrowedBooks = loanRepository.countByUserIdAndStatusNot(userId, Loan.LoanStatus.CANCELLED);
+
+        // Currently borrowed (ACTIVE status)
+        Long currentlyBorrowed = loanRepository.countByUserIdAndStatus(userId, Loan.LoanStatus.ACTIVE);
+
+        // History count (RETURNED status)
+        Long historyCount = loanRepository.countByUserIdAndStatus(userId, Loan.LoanStatus.RETURNED);
+
+        // Overdue books (ACTIVE status with dueDate before today)
+        List<Loan> overdueLoans = loanRepository.findByUserIdAndStatusAndDueDateBefore(
+                userId,
+                Loan.LoanStatus.ACTIVE,
+                today
+        );
+        Long overdueBooks = (long) overdueLoans.size();
+
+        // For favorites and reservations, set to 0 or implement if you have those entities
+        Long favoritesCount = 0L; // TODO: Implement if you have a Favorite entity
+        Long reservationsCount = 0L; // TODO: Implement if you have a Reservation entity
 
         return UserStatisticsResponse.builder()
-                .totalBorrowedBooks(24)
-                .currentlyBorrowed(3)
-                .historyCount(21)
-                .favoritesCount(12)
-                .overdueBooks(0)
-                .reservationsCount(2)
+                .totalBorrowedBooks(Math.toIntExact(totalBorrowedBooks))
+                .currentlyBorrowed(Math.toIntExact(currentlyBorrowed))
+                .historyCount(Math.toIntExact(historyCount))
+                .overdueBooks(Math.toIntExact(overdueBooks))
                 .build();
     }
 

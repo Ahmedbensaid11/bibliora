@@ -8,10 +8,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
-import com.bibliotheque.gestion.dto.ApiResponse;
-import com.bibliotheque.gestion.dto.DataResponse;
-import com.bibliotheque.gestion.dto.ListResponse;
-import com.bibliotheque.gestion.dto.PageResponse; // for BookController
+
 import java.util.List;
 import java.util.Optional;
 
@@ -97,4 +94,49 @@ public interface BookRepository extends JpaRepository<Book, Long> {
     // Find books without any categories
     @Query("SELECT b FROM Book b WHERE b.categories IS EMPTY")
     List<Book> findBooksWithoutCategories();
+
+    // Search books by keyword
+    @Query("SELECT b FROM Book b WHERE " +
+            "LOWER(b.title) LIKE LOWER(CONCAT('%', :search, '%')) OR " +
+            "LOWER(b.author) LIKE LOWER(CONCAT('%', :search, '%')) OR " +
+            "b.isbn LIKE CONCAT('%', :search, '%')")
+    Page<Book> searchBooks(@Param("search") String search, Pageable pageable);
+
+    // FIXED: Find books by category name - navigate through the categories collection
+    @Query("SELECT DISTINCT b FROM Book b JOIN b.categories c WHERE c.name = :categoryName")
+    Page<Book> findByCategoryName(@Param("categoryName") String categoryName, Pageable pageable);
+
+    // Availability queries
+    Page<Book> findByAvailableCopiesGreaterThan(int availableCopies, Pageable pageable);
+    Page<Book> findByAvailableCopies(int availableCopies, Pageable pageable);
+
+    // Combined search
+    Page<Book> findByTitleContainingIgnoreCaseOrAuthorContainingIgnoreCaseOrIsbnContainingIgnoreCase(
+            String title, String author, String isbn, Pageable pageable);
+
+
+
+
+
+    @Query("SELECT b FROM Book b WHERE b.availableCopies > 0 ORDER BY b.title")
+    List<Book> findAvailableBooks();
+
+    @Query("SELECT b FROM Book b WHERE b.availableCopies = 0 ORDER BY b.title")
+    List<Book> findUnavailableBooks();
+
+
+    @Query("SELECT COUNT(b) FROM Book b WHERE b.availableCopies = 0")
+    Long countUnavailableBooks();
+
+    @Query("SELECT b FROM Book b WHERE b.availableCopies > 0 AND b.status = 'AVAILABLE'")
+    List<Book> findAvailableBookss();
+
+
+
+
+    @Query("SELECT b FROM Book b WHERE " +
+            "LOWER(b.title) LIKE LOWER(CONCAT('%', :search, '%')) OR " +
+            "LOWER(b.author) LIKE LOWER(CONCAT('%', :search, '%')) OR " +
+            "LOWER(b.isbn) LIKE LOWER(CONCAT('%', :search, '%'))")
+    List<Book> searchBooks(@Param("search") String search);
 }

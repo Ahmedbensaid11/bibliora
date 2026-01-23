@@ -24,7 +24,8 @@ import {
   DialogActions,
   Alert,
   CircularProgress,
-  Snackbar
+  Snackbar,
+  InputAdornment
 } from '@mui/material';
 import {
   Edit,
@@ -41,30 +42,27 @@ import {
   Bookmark,
   History,
   Phone,
-  CreditCard
+  CreditCard,
+  Search
 } from '@mui/icons-material';
-import { useTheme } from '@mui/material/styles';
 import useAuthStore from '../../store/authStore';
 import axiosInstance, { API_BASE_URL } from '../../api/axios.config';
+import { designSystem } from '../../styles/designSystem'; // Import design system
 
 const Profile = () => {
-  const theme = useTheme();
   const { user } = useAuthStore();
   
   // Helper function to get full image URL
   const getImageUrl = (photoUrl) => {
     if (!photoUrl) return null;
-    // If it's already a full URL (starts with http:// or https://)
     if (photoUrl.startsWith('http://') || photoUrl.startsWith('https://')) {
       return photoUrl;
     }
-    // If it's a relative path, prepend the base URL
-    // Remove /api from base URL and add the photo path
     const baseUrl = API_BASE_URL.replace('/api', '');
     return `${baseUrl}${photoUrl.startsWith('/') ? photoUrl : '/' + photoUrl}`;
   };
   
-  // États
+  // States
   const [isEditing, setIsEditing] = useState(false);
   const [openSecurityDialog, setOpenSecurityDialog] = useState(false);
   const [openDeleteDialog, setOpenDeleteDialog] = useState(false);
@@ -106,9 +104,6 @@ const Profile = () => {
     try {
       setPageLoading(true);
       const response = await axiosInstance.get('/profile');
-      console.log('Profile data:', response.data);
-      console.log('Photo URL from API:', response.data.photoUrl);
-      console.log('Full image URL:', getImageUrl(response.data.photoUrl));
       setProfile(response.data);
       setFormData({
         firstName: response.data.firstName || '',
@@ -131,8 +126,6 @@ const Profile = () => {
       setStatistics(response.data);
     } catch (error) {
       console.error('Error fetching statistics:', error);
-      // Don't show error message, just log it
-      // Statistics are optional
     }
   };
 
@@ -166,7 +159,7 @@ const Profile = () => {
   const handlePhotoSelect = (event) => {
     const file = event.target.files[0];
     if (file) {
-      if (file.size > 5 * 1024 * 1024) { // 5MB limit
+      if (file.size > 5 * 1024 * 1024) {
         showSnackbar('La taille de l\'image ne doit pas dépasser 5MB', 'error');
         return;
       }
@@ -193,7 +186,6 @@ const Profile = () => {
         }
       });
 
-      // Recharger le profil pour obtenir la nouvelle URL
       await fetchProfile();
       setSelectedPhoto(null);
       setPhotoPreview(null);
@@ -266,7 +258,6 @@ const Profile = () => {
       setPasswordData({ currentPassword: '', newPassword: '', confirmPassword: '' });
       showSnackbar('Mot de passe modifié avec succès. Veuillez vous reconnecter.', 'success');
       
-      // Optionnel: déconnexion automatique après 2 secondes
       setTimeout(() => {
         useAuthStore.getState().logout();
       }, 2000);
@@ -290,7 +281,6 @@ const Profile = () => {
       
       showSnackbar('Compte supprimé avec succès', 'success');
       
-      // Déconnexion et redirection après 2 secondes
       setTimeout(() => {
         useAuthStore.getState().logout();
       }, 2000);
@@ -309,7 +299,6 @@ const Profile = () => {
   
   const handleEditToggle = () => {
     if (isEditing) {
-      // Réinitialiser les données si annulation
       setFormData({
         firstName: profile?.firstName || '',
         lastName: profile?.lastName || '',
@@ -340,11 +329,11 @@ const Profile = () => {
   
   const getRoleColor = (role) => {
     switch (role) {
-      case 'ROLE_ETUDIANT': return theme.palette.success.main;
-      case 'ROLE_PROFESSEUR': return theme.palette.info.main;
-      case 'ROLE_LECTEUR': return theme.palette.warning.main;
-      case 'ROLE_ADMIN': return theme.palette.error.main;
-      default: return theme.palette.secondary.main;
+      case 'ROLE_ETUDIANT': return designSystem.colors.status.available.text;
+      case 'ROLE_PROFESSEUR': return designSystem.colors.secondary.light;
+      case 'ROLE_LECTEUR': return designSystem.colors.primary.light;
+      case 'ROLE_ADMIN': return designSystem.colors.status.unavailable.text;
+      default: return designSystem.colors.text.muted;
     }
   };
 
@@ -362,9 +351,9 @@ const Profile = () => {
   
   if (pageLoading) {
     return (
-      <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '80vh' }}>
-        <CircularProgress size={60} />
-      </Box>
+      <Container maxWidth="xl" sx={{ py: 4, mt: 8, display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '60vh' }}>
+        <CircularProgress sx={{ color: designSystem.colors.primary.light }} />
+      </Container>
     );
   }
 
@@ -374,64 +363,86 @@ const Profile = () => {
       label: 'Livres empruntés', 
       value: statistics.totalBorrowedBooks || 0, 
       icon: <LibraryBooks />, 
-      color: theme.palette.primary.main 
+      color: designSystem.colors.primary.main 
     },
     { 
       label: 'En cours', 
-      value: statistics.currentBorrowedBooks || 0, 
+      value: statistics.currentlyBorrowed || 0, 
       icon: <Bookmark />, 
-      color: theme.palette.warning.main 
+      color: designSystem.colors.primary.light 
     },
     { 
-      label: 'Retournés', 
-      value: statistics.returnedBooks || 0, 
+      label: 'Historique', 
+      value: statistics.historyCount || 0, 
       icon: <History />, 
-      color: theme.palette.info.main 
+      color: designSystem.colors.secondary.main 
     },
     { 
       label: 'En retard', 
       value: statistics.overdueBooks || 0, 
       icon: <Bookmark />, 
-      color: theme.palette.error.main 
+      color: designSystem.colors.status.unavailable.text 
     }
   ] : [];
 
   return (
     <Container maxWidth="xl" sx={{ py: 4, mt: 8 }}>
-      {/* En-tête */}
-      <Box sx={{ mb: 4 }}>
-        <Typography variant="h3" component="h1" sx={{ 
-          fontWeight: 700,
-          background: `linear-gradient(135deg, ${theme.palette.primary.main} 0%, ${theme.palette.primary.light} 100%)`,
-          backgroundClip: 'text',
-          WebkitBackgroundClip: 'text',
-          color: 'transparent',
-          mb: 1
-        }}>
-          Mon Profil
-        </Typography>
-        <Typography variant="h6" color="text.secondary">
-          Gérez vos informations personnelles et vos préférences
-        </Typography>
+      {/* Header - Using Catalogue Design */}
+      <Box sx={{ mb: 4, pb: 3, borderBottom: `1px solid ${designSystem.colors.border.light}` }}>
+        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', flexWrap: 'wrap', gap: 2 }}>
+          <Box>
+            <Typography variant="h1" component="h1" sx={{ 
+              ...designSystem.typography.h1,
+              mb: 1
+            }}>
+              Mon Profil
+            </Typography>
+            <Typography variant="h6" sx={{
+              ...designSystem.typography.subtitle,
+              fontStyle: 'italic',
+              fontWeight: 300
+            }}>
+              Gérez vos informations personnelles et vos préférences
+            </Typography>
+          </Box>
+          <Typography variant="body2" sx={{
+            ...designSystem.typography.caption
+          }}>
+            Membre depuis {profile?.createdAt ? new Date(profile.createdAt).toLocaleDateString('fr-FR') : '...'}
+          </Typography>
+        </Box>
       </Box>
 
-      <Grid container spacing={4}>
-        {/* Colonne de gauche - Informations personnelles */}
+      <Grid container spacing={designSystem.spacing.gridSpacing}>
+        {/* Left Column - Personal Information */}
         <Grid item xs={12} lg={8}>
-          <Card sx={{ mb: 4 }}>
-            <CardContent sx={{ p: 4 }}>
+          <Card sx={{ 
+            mb: 4,
+            ...designSystem.card
+          }}>
+            <CardContent sx={{ 
+              p: designSystem.spacing.cardPadding,
+              bgcolor: designSystem.colors.background.card
+            }}>
               <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
-                <Typography variant="h5" fontWeight="600">
+                <Typography variant="h4" sx={designSystem.typography.h4}>
                   Informations Personnelles
                 </Typography>
                 <Button
-                  startIcon={isEditing ? <Cancel /> : <Edit />}
-                  onClick={handleEditToggle}
-                  variant={isEditing ? "outlined" : "contained"}
-                  color={isEditing ? "error" : "primary"}
-                >
-                  {isEditing ? 'Annuler' : 'Modifier'}
-                </Button>
+  startIcon={isEditing ? <Cancel /> : <Edit />}
+  onClick={handleEditToggle}
+  variant={isEditing ? "outlined" : "contained"}
+  color={isEditing ? "error" : "primary"}
+  sx={{
+    fontFamily: designSystem.typography.button.fontFamily,
+    fontWeight: designSystem.typography.button.fontWeight,
+    textTransform: designSystem.typography.button.textTransform,
+    fontSize: designSystem.typography.button.fontSize,
+    ...(isEditing ? {} : { color: 'white' }) // ✅ White text for contained button
+  }}
+>
+  {isEditing ? 'Annuler' : 'Modifier'}
+</Button>
               </Box>
 
               <Grid container spacing={3}>
@@ -443,7 +454,17 @@ const Profile = () => {
                     onChange={handleInputChange('firstName')}
                     disabled={!isEditing}
                     InputProps={{
-                      startAdornment: <Person sx={{ mr: 1, color: theme.palette.text.secondary }} />
+                      startAdornment: (
+                        <InputAdornment position="start">
+                          <Person sx={{ color: designSystem.colors.text.muted }} />
+                        </InputAdornment>
+                      ),
+                      sx: {
+                        bgcolor: designSystem.colors.background.light,
+                        '& .MuiOutlinedInput-notchedOutline': {
+                          borderColor: designSystem.colors.border.light,
+                        }
+                      }
                     }}
                   />
                 </Grid>
@@ -454,6 +475,14 @@ const Profile = () => {
                     value={formData.lastName}
                     onChange={handleInputChange('lastName')}
                     disabled={!isEditing}
+                    InputProps={{
+                      sx: {
+                        bgcolor: designSystem.colors.background.light,
+                        '& .MuiOutlinedInput-notchedOutline': {
+                          borderColor: designSystem.colors.border.light,
+                        }
+                      }
+                    }}
                   />
                 </Grid>
                 <Grid item xs={12}>
@@ -465,7 +494,17 @@ const Profile = () => {
                     disabled={!isEditing}
                     type="email"
                     InputProps={{
-                      startAdornment: <Email sx={{ mr: 1, color: theme.palette.text.secondary }} />
+                      startAdornment: (
+                        <InputAdornment position="start">
+                          <Email sx={{ color: designSystem.colors.text.muted }} />
+                        </InputAdornment>
+                      ),
+                      sx: {
+                        bgcolor: designSystem.colors.background.light,
+                        '& .MuiOutlinedInput-notchedOutline': {
+                          borderColor: designSystem.colors.border.light,
+                        }
+                      }
                     }}
                   />
                 </Grid>
@@ -477,7 +516,17 @@ const Profile = () => {
                     onChange={handleInputChange('phone')}
                     disabled={!isEditing}
                     InputProps={{
-                      startAdornment: <Phone sx={{ mr: 1, color: theme.palette.text.secondary }} />
+                      startAdornment: (
+                        <InputAdornment position="start">
+                          <Phone sx={{ color: designSystem.colors.text.muted }} />
+                        </InputAdornment>
+                      ),
+                      sx: {
+                        bgcolor: designSystem.colors.background.light,
+                        '& .MuiOutlinedInput-notchedOutline': {
+                          borderColor: designSystem.colors.border.light,
+                        }
+                      }
                     }}
                   />
                 </Grid>
@@ -489,7 +538,17 @@ const Profile = () => {
                     onChange={handleInputChange('identityCard')}
                     disabled={!isEditing}
                     InputProps={{
-                      startAdornment: <CreditCard sx={{ mr: 1, color: theme.palette.text.secondary }} />
+                      startAdornment: (
+                        <InputAdornment position="start">
+                          <CreditCard sx={{ color: designSystem.colors.text.muted }} />
+                        </InputAdornment>
+                      ),
+                      sx: {
+                        bgcolor: designSystem.colors.background.light,
+                        '& .MuiOutlinedInput-notchedOutline': {
+                          borderColor: designSystem.colors.border.light,
+                        }
+                      }
                     }}
                   />
                 </Grid>
@@ -500,6 +559,7 @@ const Profile = () => {
                   <Button
                     variant="outlined"
                     onClick={handleEditToggle}
+                    sx={designSystem.button.primary}
                   >
                     Annuler
                   </Button>
@@ -508,6 +568,7 @@ const Profile = () => {
                     startIcon={loading ? <CircularProgress size={20} /> : <Save />}
                     onClick={handleSave}
                     disabled={loading}
+                    sx={designSystem.button.contained}
                   >
                     {loading ? 'Sauvegarde...' : 'Sauvegarder'}
                   </Button>
@@ -516,11 +577,14 @@ const Profile = () => {
             </CardContent>
           </Card>
 
-          {/* Section Statistiques */}
+          {/* Statistics Section - Using Catalogue Card Style */}
           {statistics && (
-            <Card>
-              <CardContent sx={{ p: 4 }}>
-                <Typography variant="h5" fontWeight="600" sx={{ mb: 3 }}>
+            <Card sx={designSystem.card}>
+              <CardContent sx={{ 
+                p: designSystem.spacing.cardPadding,
+                bgcolor: designSystem.colors.background.card
+              }}>
+                <Typography variant="h4" sx={{ ...designSystem.typography.h4, mb: 3 }}>
                   Mes Statistiques
                 </Typography>
                 <Grid container spacing={3}>
@@ -530,12 +594,12 @@ const Profile = () => {
                         sx={{
                           p: 3,
                           textAlign: 'center',
-                          background: `linear-gradient(135deg, ${stat.color}15 0%, ${stat.color}08 100%)`,
-                          border: `1px solid ${stat.color}20`,
-                          transition: 'all 0.3s ease',
+                          background: designSystem.colors.background.card,
+                          border: `1px solid ${designSystem.colors.border.light}`,
+                          transition: designSystem.card.transition,
                           '&:hover': {
-                            transform: 'translateY(-4px)',
-                            boxShadow: theme.shadows[4]
+                            boxShadow: designSystem.shadows.cardHover,
+                            borderColor: designSystem.colors.background.hover
                           }
                         }}
                       >
@@ -554,10 +618,17 @@ const Profile = () => {
                         >
                           {stat.icon}
                         </Box>
-                        <Typography variant="h4" fontWeight="700" color={stat.color}>
+                        <Typography variant="h5" sx={{ 
+                          ...designSystem.typography.h5,
+                          color: stat.color,
+                          fontWeight: 700 
+                        }}>
                           {stat.value}
                         </Typography>
-                        <Typography variant="body2" color="text.secondary">
+                        <Typography variant="body2" sx={{ 
+                          ...designSystem.typography.body,
+                          color: designSystem.colors.text.muted 
+                        }}>
                           {stat.label}
                         </Typography>
                       </Paper>
@@ -569,11 +640,15 @@ const Profile = () => {
           )}
         </Grid>
 
-        {/* Colonne de droite */}
+        {/* Right Column */}
         <Grid item xs={12} lg={4}>
-          {/* Carte Photo de profil */}
-          <Card sx={{ mb: 4 }}>
-            <CardContent sx={{ p: 4, textAlign: 'center' }}>
+          {/* Profile Photo Card */}
+          <Card sx={{ mb: 4, ...designSystem.card }}>
+            <CardContent sx={{ 
+              p: designSystem.spacing.cardPadding, 
+              textAlign: 'center',
+              bgcolor: designSystem.colors.background.card
+            }}>
               <Avatar
                 src={photoPreview || getImageUrl(profile?.photoUrl)}
                 alt={`${profile?.firstName} ${profile?.lastName}`}
@@ -582,11 +657,11 @@ const Profile = () => {
                   height: 120,
                   mx: 'auto',
                   mb: 3,
-                  bgcolor: theme.palette.primary.main,
+                  bgcolor: designSystem.colors.primary.main,
                   fontSize: '2.5rem',
                   fontWeight: 600,
-                  border: `4px solid ${theme.palette.background.paper}`,
-                  boxShadow: theme.shadows[4]
+                  border: `4px solid ${designSystem.colors.background.main}`,
+                  boxShadow: '0 4px 12px rgba(0, 0, 0, 0.1)'
                 }}
                 imgProps={{
                   onError: (e) => {
@@ -598,11 +673,25 @@ const Profile = () => {
                 {!profile?.photoUrl && !photoPreview && profile?.firstName?.charAt(0)?.toUpperCase()}
               </Avatar>
               
-              <Typography variant="h5" fontWeight="600" gutterBottom>
+                <Typography 
+                variant="h5" 
+                gutterBottom  // ✅ This should be a prop, not in sx
+                sx={{ 
+                  ...designSystem.typography.h5,
+                  fontWeight: 700
+                }}
+              >
                 {profile?.firstName} {profile?.lastName}
               </Typography>
               
-              <Typography variant="body2" color="text.secondary" gutterBottom>
+                           <Typography 
+                variant="body2" 
+                gutterBottom  // ✅ Move to props
+                sx={{ 
+                  ...designSystem.typography.body,
+                  color: designSystem.colors.text.muted
+                }}
+              >
                 {profile?.username}
               </Typography>
 
@@ -615,7 +704,9 @@ const Profile = () => {
                     sx={{
                       bgcolor: getRoleColor(role),
                       color: 'white',
-                      fontWeight: 600
+                      fontWeight: 600,
+                      fontFamily: designSystem.typography.body.fontFamily,
+                      fontSize: '0.75rem'
                     }}
                   />
                 ))}
@@ -633,7 +724,7 @@ const Profile = () => {
                   fullWidth
                   variant="outlined"
                   component="span"
-                  sx={{ mt: 3 }}
+                  sx={{ mt: 3, ...designSystem.button.primary }}
                   startIcon={<Edit />}
                 >
                   Changer la photo
@@ -647,6 +738,7 @@ const Profile = () => {
                     variant="contained"
                     onClick={handlePhotoUpload}
                     disabled={loading}
+                    sx={designSystem.button.contained}
                   >
                     {loading ? <CircularProgress size={20} /> : 'Confirmer'}
                   </Button>
@@ -657,6 +749,7 @@ const Profile = () => {
                       setSelectedPhoto(null);
                       setPhotoPreview(null);
                     }}
+                    sx={designSystem.button.primary}
                   >
                     Annuler
                   </Button>
@@ -678,43 +771,63 @@ const Profile = () => {
             </CardContent>
           </Card>
 
-          {/* Carte Préférences */}
-          <Card sx={{ mb: 4 }}>
+          {/* Preferences Card */}
+          <Card sx={{ mb: 4, ...designSystem.card }}>
             <CardContent sx={{ p: 0 }}>
-              <Box sx={{ p: 3, pb: 2 }}>
-                <Typography variant="h6" fontWeight="600">
+              <Box sx={{ p: 3, pb: 2, bgcolor: designSystem.colors.background.card }}>
+                <Typography variant="h5" sx={designSystem.typography.h5}>
                   Préférences
                 </Typography>
               </Box>
               <Divider />
-              <List>
+              <List sx={{ bgcolor: designSystem.colors.background.card }}>
                 <ListItem>
                   <ListItemIcon>
-                    <Notifications color="primary" />
+                    <Notifications sx={{ color: designSystem.colors.primary.main }} />
                   </ListItemIcon>
                   <ListItemText 
                     primary="Notifications par email" 
                     secondary="Recevoir les alertes de retour" 
+                    primaryTypographyProps={{ sx: designSystem.typography.body, fontWeight: 600 }}
+                    secondaryTypographyProps={{ sx: designSystem.typography.caption }}
                   />
                   <ListItemSecondaryAction>
                     <Switch 
                       checked={profile?.emailNotifications || false}
                       onChange={(e) => handlePreferenceChange('emailNotifications', e.target.checked)}
+                      sx={{
+                        '& .MuiSwitch-switchBase.Mui-checked': {
+                          color: designSystem.colors.primary.main,
+                        },
+                        '& .MuiSwitch-switchBase.Mui-checked + .MuiSwitch-track': {
+                          backgroundColor: designSystem.colors.primary.main,
+                        },
+                      }}
                     />
                   </ListItemSecondaryAction>
                 </ListItem>
                 <ListItem>
                   <ListItemIcon>
-                    <PrivacyTip color="primary" />
+                    <PrivacyTip sx={{ color: designSystem.colors.primary.main }} />
                   </ListItemIcon>
                   <ListItemText 
                     primary="Profil public" 
                     secondary="Rendre mon profil visible" 
+                    primaryTypographyProps={{ sx: designSystem.typography.body, fontWeight: 600 }}
+                    secondaryTypographyProps={{ sx: designSystem.typography.caption }}
                   />
                   <ListItemSecondaryAction>
                     <Switch 
                       checked={profile?.publicProfile || false}
                       onChange={(e) => handlePreferenceChange('publicProfile', e.target.checked)}
+                      sx={{
+                        '& .MuiSwitch-switchBase.Mui-checked': {
+                          color: designSystem.colors.primary.main,
+                        },
+                        '& .MuiSwitch-switchBase.Mui-checked + .MuiSwitch-track': {
+                          backgroundColor: designSystem.colors.primary.main,
+                        },
+                      }}
                     />
                   </ListItemSecondaryAction>
                 </ListItem>
@@ -722,33 +835,40 @@ const Profile = () => {
             </CardContent>
           </Card>
 
-          {/* Carte Actions */}
-          <Card>
+          {/* Actions Card */}
+          <Card sx={designSystem.card}>
             <CardContent sx={{ p: 0 }}>
-              <Box sx={{ p: 3, pb: 2 }}>
-                <Typography variant="h6" fontWeight="600">
+              <Box sx={{ p: 3, pb: 2, bgcolor: designSystem.colors.background.card }}>
+                <Typography variant="h5" sx={designSystem.typography.h5}>
                   Actions
                 </Typography>
               </Box>
               <Divider />
-              <List>
+              <List sx={{ bgcolor: designSystem.colors.background.card }}>
                 <ListItem button onClick={() => setOpenSecurityDialog(true)}>
                   <ListItemIcon>
-                    <Security color="primary" />
+                    <Security sx={{ color: designSystem.colors.primary.main }} />
                   </ListItemIcon>
                   <ListItemText 
                     primary="Sécurité du compte" 
                     secondary="Changer le mot de passe" 
+                    primaryTypographyProps={{ sx: designSystem.typography.body, fontWeight: 600 }}
+                    secondaryTypographyProps={{ sx: designSystem.typography.caption }}
                   />
                 </ListItem>
                 <ListItem button onClick={() => setOpenDeleteDialog(true)}>
                   <ListItemIcon>
-                    <Delete color="error" />
+                    <Delete sx={{ color: designSystem.colors.status.unavailable.text }} />
                   </ListItemIcon>
                   <ListItemText 
                     primary="Supprimer le compte" 
                     secondary="Action irréversible" 
-                    primaryTypographyProps={{ color: 'error' }}
+                    primaryTypographyProps={{ 
+                      sx: designSystem.typography.body, 
+                      fontWeight: 600,
+                      color: designSystem.colors.status.unavailable.text 
+                    }}
+                    secondaryTypographyProps={{ sx: designSystem.typography.caption }}
                   />
                 </ListItem>
               </List>
@@ -757,21 +877,29 @@ const Profile = () => {
         </Grid>
       </Grid>
 
-      {/* Dialog Sécurité */}
+      {/* Security Dialog */}
       <Dialog 
         open={openSecurityDialog} 
         onClose={() => setOpenSecurityDialog(false)}
         maxWidth="sm"
         fullWidth
+        PaperProps={{
+          sx: {
+            borderRadius: designSystem.card.borderRadius,
+            border: designSystem.card.border
+          }
+        }}
       >
-        <DialogTitle>
+        <DialogTitle sx={{ bgcolor: designSystem.colors.background.card, borderBottom: `1px solid ${designSystem.colors.border.light}` }}>
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-            <Security color="primary" />
-            <Typography variant="h6">Sécurité du compte</Typography>
+            <Security sx={{ color: designSystem.colors.primary.main }} />
+            <Typography variant="h5" sx={designSystem.typography.h5}>
+              Sécurité du compte
+            </Typography>
           </Box>
         </DialogTitle>
-        <DialogContent>
-          <Alert severity="info" sx={{ mb: 3 }}>
+        <DialogContent sx={{ pt: 3, bgcolor: designSystem.colors.background.card }}>
+          <Alert severity="info" sx={{ mb: 3, bgcolor: designSystem.colors.status.available.bg }}>
             Pour des raisons de sécurité, vous devrez vous reconnecter après avoir changé votre mot de passe.
           </Alert>
           <TextField
@@ -781,6 +909,11 @@ const Profile = () => {
             margin="normal"
             value={passwordData.currentPassword}
             onChange={(e) => setPasswordData({ ...passwordData, currentPassword: e.target.value })}
+            InputProps={{
+              sx: {
+                bgcolor: designSystem.colors.background.light,
+              }
+            }}
           />
           <TextField
             fullWidth
@@ -790,6 +923,11 @@ const Profile = () => {
             value={passwordData.newPassword}
             onChange={(e) => setPasswordData({ ...passwordData, newPassword: e.target.value })}
             helperText="Minimum 8 caractères"
+            InputProps={{
+              sx: {
+                bgcolor: designSystem.colors.background.light,
+              }
+            }}
           />
           <TextField
             fullWidth
@@ -804,10 +942,18 @@ const Profile = () => {
                 ? "Les mots de passe ne correspondent pas" 
                 : ""
             }
+            InputProps={{
+              sx: {
+                bgcolor: designSystem.colors.background.light,
+              }
+            }}
           />
         </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setOpenSecurityDialog(false)}>
+        <DialogActions sx={{ bgcolor: designSystem.colors.background.card, borderTop: `1px solid ${designSystem.colors.border.light}`, p: 2 }}>
+          <Button 
+            onClick={() => setOpenSecurityDialog(false)}
+            sx={designSystem.button.primary}
+          >
             Annuler
           </Button>
           <Button 
@@ -820,27 +966,36 @@ const Profile = () => {
               !passwordData.confirmPassword ||
               passwordData.newPassword !== passwordData.confirmPassword
             }
+            sx={designSystem.button.contained}
           >
             {loading ? <CircularProgress size={24} /> : 'Changer le mot de passe'}
           </Button>
         </DialogActions>
       </Dialog>
 
-      {/* Dialog Suppression de compte */}
+      {/* Delete Account Dialog */}
       <Dialog 
         open={openDeleteDialog} 
         onClose={() => setOpenDeleteDialog(false)}
         maxWidth="sm"
         fullWidth
+        PaperProps={{
+          sx: {
+            borderRadius: designSystem.card.borderRadius,
+            border: designSystem.card.border
+          }
+        }}
       >
-        <DialogTitle>
+        <DialogTitle sx={{ bgcolor: designSystem.colors.background.card, borderBottom: `1px solid ${designSystem.colors.border.light}` }}>
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-            <Delete color="error" />
-            <Typography variant="h6">Supprimer le compte</Typography>
+            <Delete sx={{ color: designSystem.colors.status.unavailable.text }} />
+            <Typography variant="h5" sx={designSystem.typography.h5}>
+              Supprimer le compte
+            </Typography>
           </Box>
         </DialogTitle>
-        <DialogContent>
-          <Alert severity="error" sx={{ mb: 3 }}>
+        <DialogContent sx={{ pt: 3, bgcolor: designSystem.colors.background.card }}>
+          <Alert severity="error" sx={{ mb: 3, bgcolor: designSystem.colors.status.unavailable.bg }}>
             Cette action est irréversible. Toutes vos données seront définitivement supprimées.
           </Alert>
           <TextField
@@ -851,10 +1006,18 @@ const Profile = () => {
             value={deleteAccountData.password}
             onChange={(e) => setDeleteAccountData({ password: e.target.value })}
             placeholder="Entrez votre mot de passe pour confirmer"
+            InputProps={{
+              sx: {
+                bgcolor: designSystem.colors.background.light,
+              }
+            }}
           />
         </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setOpenDeleteDialog(false)}>
+        <DialogActions sx={{ bgcolor: designSystem.colors.background.card, borderTop: `1px solid ${designSystem.colors.border.light}`, p: 2 }}>
+          <Button 
+            onClick={() => setOpenDeleteDialog(false)}
+            sx={designSystem.button.primary}
+          >
             Annuler
           </Button>
           <Button 
@@ -862,13 +1025,18 @@ const Profile = () => {
             color="error"
             onClick={handleDeleteAccount}
             disabled={loading || !deleteAccountData.password}
+            sx={{
+              ...designSystem.button.contained,
+              bgcolor: designSystem.colors.status.unavailable.text,
+              '&:hover': { bgcolor: '#dc2626' }
+            }}
           >
             {loading ? <CircularProgress size={24} /> : 'Supprimer définitivement'}
           </Button>
         </DialogActions>
       </Dialog>
 
-      {/* Snackbar pour les notifications */}
+      {/* Snackbar */}
       <Snackbar
         open={snackbar.open}
         autoHideDuration={6000}

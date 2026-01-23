@@ -18,4 +18,5 @@ public interface RoleRepository extends JpaRepository<Role, Long> {
      * Trouve un rôle par son nom
      */
     Optional<Role> findByName(Role.RoleName name);
+
 }

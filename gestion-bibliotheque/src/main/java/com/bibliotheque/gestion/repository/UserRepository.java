@@ -7,6 +7,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.stereotype.Repository;
 
+import java.util.List;
 import java.util.Optional;
 
 /**
@@ -19,12 +20,13 @@ public interface UserRepository extends JpaRepository<User, Long> {
      * Trouve un utilisateur par son nom d'utilisateur
      */
     Optional<User> findByUsername(String username);
+    List<User> findByEnabledTrue();
 
     /**
      * Trouve un utilisateur par son email
      */
     Optional<User> findByEmail(String email);
-
+    boolean existsByIdentityCard(String identityCard);
     /**
      * Trouve un utilisateur par username ou email
      */

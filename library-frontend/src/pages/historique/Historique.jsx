@@ -27,14 +27,13 @@ import {
   DialogTitle,
   DialogContent,
   DialogActions,
-  Rating,
   Divider,
   Tooltip,
   Avatar,
-  List,
-  ListItem,
-  ListItemIcon,
-  ListItemText
+  CircularProgress,
+  Alert,
+  Snackbar,
+  Badge
 } from '@mui/material';
 import {
   Search,
@@ -47,19 +46,40 @@ import {
   Visibility,
   Download,
   Print,
-  Share,
   Star,
   StarBorder,
   AccessTime,
   LibraryBooks,
   TrendingUp,
-  LocalLibrary
+  LocalLibrary,
+  History,
+  Refresh,
+  Warning,
+  Schedule,
+  Close
 } from '@mui/icons-material';
-import { useTheme } from '@mui/material/styles';
 import useAuthStore from '../../store/authStore';
+import axios from 'axios';
+import { designSystem } from '../../styles/designSystem';
+
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080/api';
+
+const api = axios.create({
+  baseURL: API_BASE_URL
+});
+
+api.interceptors.request.use(
+  (config) => {
+    const token = localStorage.getItem('token');
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`;
+    }
+    return config;
+  },
+  (error) => Promise.reject(error)
+);
 
 const Historique = () => {
-  const theme = useTheme();
   const { user } = useAuthStore();
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedPeriod, setSelectedPeriod] = useState('all');
@@ -69,134 +89,8 @@ const Historique = () => {
   const [sortBy, setSortBy] = useState('date');
   const [viewMode, setViewMode] = useState('table');
   const [historiqueData, setHistoriqueData] = useState([]);
-
-  // Données simulées pour l'historique
-  const sampleHistorique = [
-    {
-      id: 1,
-      livre: "L'Étranger",
-      auteur: "Albert Camus",
-      isbn: "9782070360021",
-      dateEmprunt: "2024-01-15",
-      dateRetourPrevu: "2024-02-15",
-      dateRetour: "2024-02-12",
-      statut: "returned",
-      duree: 28,
-      retard: false,
-      evaluation: 5,
-      commentaire: "Très belle lecture, un classique intemporel",
-      couverture: "/api/placeholder/80/120"
-    },
-    {
-      id: 2,
-      livre: "1984",
-      auteur: "George Orwell",
-      isbn: "9782070368225",
-      dateEmprunt: "2023-12-01",
-      dateRetourPrevu: "2023-12-29",
-      dateRetour: "2023-12-28",
-      statut: "returned",
-      duree: 27,
-      retard: false,
-      evaluation: 4,
-      commentaire: "Visionnaire et troublant",
-      couverture: "/api/placeholder/80/120"
-    },
-    {
-      id: 3,
-      livre: "Le Petit Prince",
-      auteur: "Antoine de Saint-Exupéry",
-      isbn: "9782070612758",
-      dateEmprunt: "2023-11-10",
-      dateRetourPrevu: "2023-12-08",
-      dateRetour: "2023-12-10",
-      statut: "returned_late",
-      duree: 30,
-      retard: true,
-      joursRetard: 2,
-      amende: "1.00€",
-      evaluation: 5,
-      commentaire: "À relire régulièrement",
-      couverture: "/api/placeholder/80/120"
-    },
-    {
-      id: 4,
-      livre: "Les Misérables",
-      auteur: "Victor Hugo",
-      isbn: "9782253009265",
-      dateEmprunt: "2023-10-05",
-      dateRetourPrevu: "2023-11-02",
-      dateRetour: "2023-10-30",
-      statut: "returned",
-      duree: 25,
-      retard: false,
-      evaluation: 4,
-      commentaire: "Une fresque magistrale",
-      couverture: "/api/placeholder/80/120"
-    },
-    {
-      id: 5,
-      livre: "Bel-Ami",
-      auteur: "Guy de Maupassant",
-      isbn: "9782253009266",
-      dateEmprunt: "2023-09-15",
-      dateRetourPrevu: "2023-10-13",
-      dateRetour: "2023-10-13",
-      statut: "returned",
-      duree: 28,
-      retard: false,
-      evaluation: 3,
-      commentaire: "Intéressant mais un peu long",
-      couverture: "/api/placeholder/80/120"
-    },
-    {
-      id: 6,
-      livre: "Madame Bovary",
-      auteur: "Gustave Flaubert",
-      isbn: "9782070360022",
-      dateEmprunt: "2023-08-20",
-      dateRetourPrevu: "2023-09-17",
-      dateRetour: "2023-09-20",
-      statut: "returned_late",
-      duree: 31,
-      retard: true,
-      joursRetard: 3,
-      amende: "1.50€",
-      evaluation: 4,
-      commentaire: "Écriture remarquable",
-      couverture: "/api/placeholder/80/120"
-    },
-    {
-      id: 7,
-      livre: "La Peste",
-      auteur: "Albert Camus",
-      isbn: "9782070360023",
-      dateEmprunt: "2023-07-12",
-      dateRetourPrevu: "2023-08-09",
-      dateRetour: "2023-08-05",
-      statut: "returned",
-      duree: 24,
-      retard: false,
-      evaluation: 5,
-      commentaire: "Très actuel et profond",
-      couverture: "/api/placeholder/80/120"
-    },
-    {
-      id: 8,
-      livre: "Germinal",
-      auteur: "Émile Zola",
-      isbn: "9782253009267",
-      dateEmprunt: "2023-06-01",
-      dateRetourPrevu: "2023-06-29",
-      dateRetour: "2023-06-25",
-      statut: "returned",
-      duree: 24,
-      retard: false,
-      evaluation: 4,
-      commentaire: "Puissant et engagé",
-      couverture: "/api/placeholder/80/120"
-    }
-  ];
+  const [loading, setLoading] = useState(true);
+  const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'success' });
 
   const periods = [
     { value: 'all', label: 'Toute période' },
@@ -208,46 +102,71 @@ const Historique = () => {
 
   const statuses = [
     { value: 'all', label: 'Tous les statuts' },
-    { value: 'returned', label: 'Retournés à temps' },
-    { value: 'returned_late', label: 'Retournés en retard' }
+    { value: 'RETURNED', label: 'Retournés' },
+    { value: 'CANCELLED', label: 'Annulés' },
+    { value: 'LOST', label: 'Perdus' }
   ];
 
   const itemsPerPage = 6;
 
   useEffect(() => {
-    // Simuler un appel API
-    setHistoriqueData(sampleHistorique);
+    fetchLoans();
   }, []);
 
-  // Filtrer et trier les données
+  const fetchLoans = async () => {
+    try {
+      setLoading(true);
+      const response = await api.get('/loans/my-loans');
+      
+      if (response.data.success) {
+        const loans = response.data.items || response.data.data || [];
+        const returnedLoans = loans.filter(loan => 
+          loan.status === 'RETURNED' || 
+          loan.status === 'CANCELLED' || 
+          loan.status === 'LOST'
+        );
+        setHistoriqueData(returnedLoans);
+      }
+    } catch (err) {
+      console.error('Error fetching loan history:', err);
+      showSnackbar('Erreur lors du chargement de l\'historique', 'error');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const showSnackbar = (message, severity) => {
+    setSnackbar({
+      open: true,
+      message,
+      severity
+    });
+  };
+
   const filteredData = historiqueData.filter(loan => {
-    const matchesSearch = loan.livre.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         loan.auteur.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesSearch = searchTerm === '' || 
+                         (loan.book?.title?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                          loan.book?.author?.toLowerCase().includes(searchTerm.toLowerCase()));
     
     const matchesPeriod = selectedPeriod === 'all' || 
-                         (selectedPeriod === 'month' && isWithinDays(loan.dateEmprunt, 30)) ||
-                         (selectedPeriod === '3months' && isWithinDays(loan.dateEmprunt, 90)) ||
-                         (selectedPeriod === '6months' && isWithinDays(loan.dateEmprunt, 180)) ||
-                         (selectedPeriod === 'year' && isWithinDays(loan.dateEmprunt, 365));
+                         (selectedPeriod === 'month' && isWithinDays(loan.loanDate, 30)) ||
+                         (selectedPeriod === '3months' && isWithinDays(loan.loanDate, 90)) ||
+                         (selectedPeriod === '6months' && isWithinDays(loan.loanDate, 180)) ||
+                         (selectedPeriod === 'year' && isWithinDays(loan.loanDate, 365));
     
-    const matchesStatus = selectedStatus === 'all' || 
-                         (selectedStatus === 'returned' && loan.statut === 'returned') ||
-                         (selectedStatus === 'returned_late' && loan.statut === 'returned_late');
+    const matchesStatus = selectedStatus === 'all' || loan.status === selectedStatus;
     
     return matchesSearch && matchesPeriod && matchesStatus;
   });
 
-  // Trier les données
   const sortedData = [...filteredData].sort((a, b) => {
     switch (sortBy) {
       case 'date':
-        return new Date(b.dateEmprunt) - new Date(a.dateEmprunt);
+        return new Date(b.loanDate) - new Date(a.loanDate);
       case 'title':
-        return a.livre.localeCompare(b.livre);
+        return (a.book?.title || '').localeCompare(b.book?.title || '');
       case 'author':
-        return a.auteur.localeCompare(b.auteur);
-      case 'rating':
-        return b.evaluation - a.evaluation;
+        return (a.book?.author || '').localeCompare(b.book?.author || '');
       default:
         return 0;
     }
@@ -258,8 +177,8 @@ const Historique = () => {
     currentPage * itemsPerPage
   );
 
-  // Fonction utilitaire pour vérifier si une date est dans les derniers jours
   const isWithinDays = (dateString, days) => {
+    if (!dateString) return false;
     const date = new Date(dateString);
     const now = new Date();
     const diffTime = Math.abs(now - date);
@@ -268,6 +187,7 @@ const Historique = () => {
   };
 
   const formatDate = (dateString) => {
+    if (!dateString) return '-';
     return new Date(dateString).toLocaleDateString('fr-FR', {
       day: 'numeric',
       month: 'short',
@@ -275,122 +195,274 @@ const Historique = () => {
     });
   };
 
-  const getStatusChip = (statut, retard) => {
-    if (statut === 'returned_late') {
-      return (
-        <Chip 
-          label="Retourné en retard"
-          color="error"
-          size="small"
-          variant="outlined"
-        />
-      );
-    }
+  const getStatusChip = (status) => {
+    const statusConfig = {
+      'RETURNED': { 
+        label: 'Retourné', 
+        color: designSystem.colors.status.available.text,
+        bgColor: designSystem.colors.status.available.bg,
+        border: designSystem.colors.status.available.border
+      },
+      'CANCELLED': { 
+        label: 'Annulé', 
+        color: designSystem.colors.text.muted,
+        bgColor: '#f5f5f5',
+        border: '#e0e0e0'
+      },
+      'LOST': { 
+        label: 'Perdu', 
+        color: designSystem.colors.status.unavailable.text,
+        bgColor: designSystem.colors.status.unavailable.bg,
+        border: designSystem.colors.status.unavailable.border
+      }
+    };
+
+    const config = statusConfig[status] || { 
+      label: status, 
+      color: designSystem.colors.text.muted,
+      bgColor: '#f5f5f5',
+      border: '#e0e0e0'
+    };
     return (
       <Chip 
-        label="Retourné à temps"
-        color="success"
+        label={config.label}
         size="small"
-        variant="outlined"
+        sx={{
+          bgcolor: config.bgColor,
+          color: config.color,
+          border: `1px solid ${config.border}`,
+          fontWeight: 700,
+          fontFamily: designSystem.typography.body.fontFamily,
+          fontSize: '0.75rem'
+        }}
       />
     );
   };
 
+  const getDaysDiff = (date1, date2) => {
+    if (!date1 || !date2) return 0;
+    const d1 = new Date(date1);
+    const d2 = new Date(date2);
+    const diffTime = Math.abs(d2 - d1);
+    return Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+  };
+
   const getStats = () => {
     const total = historiqueData.length;
-    const onTime = historiqueData.filter(loan => loan.statut === 'returned').length;
-    const late = historiqueData.filter(loan => loan.statut === 'returned_late').length;
-    const averageRating = (historiqueData.reduce((sum, loan) => sum + loan.evaluation, 0) / total).toFixed(1);
-    const totalDays = historiqueData.reduce((sum, loan) => sum + loan.duree, 0);
-    const averageDays = (totalDays / total).toFixed(0);
+    const returned = historiqueData.filter(loan => loan.status === 'RETURNED').length;
+    const cancelled = historiqueData.filter(loan => loan.status === 'CANCELLED').length;
+    const lost = historiqueData.filter(loan => loan.status === 'LOST').length;
+    
+    const returnedLoans = historiqueData.filter(loan => loan.status === 'RETURNED');
+    const totalDays = returnedLoans.reduce((sum, loan) => {
+      if (loan.loanDate && loan.returnDate) {
+        return sum + getDaysDiff(loan.loanDate, loan.returnDate);
+      }
+      return sum;
+    }, 0);
+    const averageDays = returnedLoans.length > 0 ? Math.round(totalDays / returnedLoans.length) : 0;
 
-    return { total, onTime, late, averageRating, averageDays };
+    return { total, returned, cancelled, lost, averageDays };
   };
 
   const stats = getStats();
 
   const handleExport = () => {
-    // Logique d'export
-    console.log('Export de l\'historique');
+    const dataStr = JSON.stringify(filteredData, null, 2);
+    const dataUri = 'data:application/json;charset=utf-8,'+ encodeURIComponent(dataStr);
+    const exportFileDefaultName = 'historique_emprunts.json';
+    
+    const linkElement = document.createElement('a');
+    linkElement.setAttribute('href', dataUri);
+    linkElement.setAttribute('download', exportFileDefaultName);
+    linkElement.click();
+    
+    showSnackbar('Historique exporté avec succès', 'success');
   };
 
   const handlePrint = () => {
     window.print();
   };
 
+  const handleBorrowAgain = async (bookId) => {
+    try {
+      const response = await api.post(`/loans/borrow/${bookId}`);
+      if (response.data.success) {
+        showSnackbar('Livre emprunté avec succès!', 'success');
+        fetchLoans();
+      }
+    } catch (err) {
+      showSnackbar(err.response?.data?.message || 'Erreur lors de l\'emprunt', 'error');
+    }
+  };
+
+  if (loading) {
+    return (
+      <Container maxWidth="xl" sx={{ 
+        py: 4, 
+        mt: 8, 
+        display: 'flex', 
+        justifyContent: 'center', 
+        alignItems: 'center', 
+        minHeight: '60vh' 
+      }}>
+        <CircularProgress sx={{ color: designSystem.colors.primary.light }} />
+      </Container>
+    );
+  }
+
   return (
     <Container maxWidth="xl" sx={{ py: 4, mt: 8 }}>
-      {/* En-tête */}
-      <Box sx={{ mb: 4 }}>
-        <Typography variant="h3" component="h1" sx={{ 
-          fontWeight: 700,
-          background: `linear-gradient(135deg, ${theme.palette.primary.main} 0%, ${theme.palette.primary.light} 100%)`,
-          backgroundClip: 'text',
-          WebkitBackgroundClip: 'text',
-          color: 'transparent',
-          mb: 1
+      {/* Header - Catalogue Style */}
+      <Box sx={{ 
+        mb: 4, 
+        pb: 3, 
+        borderBottom: `1px solid ${designSystem.colors.border.light}` 
+      }}>
+        <Box sx={{ 
+          display: 'flex', 
+          justifyContent: 'space-between', 
+          alignItems: 'flex-end', 
+          flexWrap: 'wrap', 
+          gap: 2 
         }}>
-          Historique des Emprunts
-        </Typography>
-        <Typography variant="h6" color="text.secondary">
-          Retracez votre parcours de lecture et consultez vos anciens emprunts
-        </Typography>
+          <Box>
+            <Typography variant="h1" component="h1" sx={{ 
+              ...designSystem.typography.h1,
+              mb: 1
+            }}>
+              Historique des Emprunts
+            </Typography>
+            <Typography variant="h6" sx={{
+              ...designSystem.typography.subtitle,
+              fontStyle: 'italic',
+              fontWeight: 300
+            }}>
+              Retracez votre parcours de lecture et consultez vos anciens emprunts
+            </Typography>
+          </Box>
+          <Typography variant="body2" sx={{
+            ...designSystem.typography.caption
+          }}>
+            Affichage {((currentPage - 1) * itemsPerPage) + 1}-{Math.min(currentPage * itemsPerPage, filteredData.length)} sur {filteredData.length} résultats
+          </Typography>
+        </Box>
       </Box>
 
-      {/* Statistiques résumées */}
+      {/* Statistiques résumées - Catalogue Style */}
       <Grid container spacing={3} sx={{ mb: 4 }}>
-        <Grid item xs={12} sm={6} md={2.4}>
-          <Card sx={{ textAlign: 'center', p: 2, bgcolor: 'primary.light', color: 'primary.contrastText' }}>
-            <LibraryBooks sx={{ fontSize: 40, mb: 1 }} />
-            <Typography variant="h4" fontWeight="bold">{stats.total}</Typography>
-            <Typography variant="body2">Total emprunts</Typography>
-          </Card>
-        </Grid>
-        <Grid item xs={12} sm={6} md={2.4}>
-          <Card sx={{ textAlign: 'center', p: 2, bgcolor: 'success.light', color: 'success.contrastText' }}>
-            <CheckCircle sx={{ fontSize: 40, mb: 1 }} />
-            <Typography variant="h4" fontWeight="bold">{stats.onTime}</Typography>
-            <Typography variant="body2">Retours à temps</Typography>
-          </Card>
-        </Grid>
-        <Grid item xs={12} sm={6} md={2.4}>
-          <Card sx={{ textAlign: 'center', p: 2, bgcolor: 'error.light', color: 'error.contrastText' }}>
-            <AccessTime sx={{ fontSize: 40, mb: 1 }} />
-            <Typography variant="h4" fontWeight="bold">{stats.late}</Typography>
-            <Typography variant="body2">Retours en retard</Typography>
-          </Card>
-        </Grid>
-        <Grid item xs={12} sm={6} md={2.4}>
-          <Card sx={{ textAlign: 'center', p: 2, bgcolor: 'warning.light', color: 'warning.contrastText' }}>
-            <Star sx={{ fontSize: 40, mb: 1 }} />
-            <Typography variant="h4" fontWeight="bold">{stats.averageRating}</Typography>
-            <Typography variant="body2">Note moyenne</Typography>
-          </Card>
-        </Grid>
-        <Grid item xs={12} sm={6} md={2.4}>
-          <Card sx={{ textAlign: 'center', p: 2, bgcolor: 'info.light', color: 'info.contrastText' }}>
-            <TrendingUp sx={{ fontSize: 40, mb: 1 }} />
-            <Typography variant="h4" fontWeight="bold">{stats.averageDays}</Typography>
-            <Typography variant="body2">Jours moyen</Typography>
-          </Card>
-        </Grid>
+        {[
+          { 
+            label: 'Total emprunts', 
+            value: stats.total, 
+            icon: <LibraryBooks />, 
+            color: designSystem.colors.primary.main,
+            bgColor: '#fef3c7'
+          },
+          { 
+            label: 'Retournés', 
+            value: stats.returned, 
+            icon: <CheckCircle />, 
+            color: designSystem.colors.status.available.text,
+            bgColor: designSystem.colors.status.available.bg
+          },
+          { 
+            label: 'Perdus', 
+            value: stats.lost, 
+            icon: <Warning />, 
+            color: designSystem.colors.status.unavailable.text,
+            bgColor: designSystem.colors.status.unavailable.bg
+          },
+          { 
+            label: 'Annulés', 
+            value: stats.cancelled, 
+            icon: <Cancel />, 
+            color: designSystem.colors.secondary.main,
+            bgColor: '#fef3c7'
+          },
+          { 
+            label: 'Jours moyen', 
+            value: stats.averageDays, 
+            icon: <Schedule />, 
+            color: designSystem.colors.primary.light,
+            bgColor: '#fef3c7'
+          }
+        ].map((stat, index) => (
+          <Grid item xs={12} sm={6} md={2.4} key={index}>
+            <Card sx={{ 
+              textAlign: 'center', 
+              p: 2,
+              bgcolor: stat.bgColor,
+              border: `1px solid ${designSystem.colors.border.light}`,
+              borderRadius: designSystem.card.borderRadius,
+              transition: designSystem.card.transition,
+              '&:hover': {
+                borderColor: designSystem.colors.background.hover,
+                boxShadow: designSystem.shadows.cardHover
+              }
+            }}>
+              <Box sx={{ 
+                display: 'inline-flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                width: 40,
+                height: 40,
+                borderRadius: '50%',
+                bgcolor: `${stat.color}20`,
+                mb: 1,
+                color: stat.color
+              }}>
+                {stat.icon}
+              </Box>
+              <Typography variant="h4" sx={{ 
+                ...designSystem.typography.h4,
+                color: stat.color,
+                mb: 0.5
+              }}>
+                {stat.value}
+              </Typography>
+              <Typography variant="body2" sx={{ 
+                ...designSystem.typography.caption,
+                color: designSystem.colors.text.muted
+              }}>
+                {stat.label}
+              </Typography>
+            </Card>
+          </Grid>
+        ))}
       </Grid>
 
-      {/* Barre de recherche et filtres */}
-      <Card sx={{ mb: 4, p: 3 }}>
+      {/* Search and Filters - Catalogue Style */}
+      <Card sx={{ 
+        mb: 4, 
+        p: 3,
+        bgcolor: designSystem.colors.background.main,
+        boxShadow: designSystem.shadows.header,
+        border: `1px solid ${designSystem.colors.border.light}`,
+        borderRadius: designSystem.card.borderRadius
+      }}>
         <Grid container spacing={3} alignItems="center">
           <Grid item xs={12} md={4}>
             <TextField
               fullWidth
               placeholder="Rechercher un livre ou un auteur..."
               value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
+              onChange={(e) => {
+                setSearchTerm(e.target.value);
+                setCurrentPage(1);
+              }}
               InputProps={{
                 startAdornment: (
                   <InputAdornment position="start">
-                    <Search color="primary" />
+                    <Search sx={{ color: designSystem.colors.text.muted }} />
                   </InputAdornment>
                 ),
+                sx: {
+                  bgcolor: designSystem.colors.background.light,
+                  '& .MuiOutlinedInput-notchedOutline': {
+                    borderColor: designSystem.colors.border.light,
+                  }
+                }
               }}
             />
           </Grid>
@@ -400,7 +472,11 @@ const Historique = () => {
               <Select
                 value={selectedPeriod}
                 label="Période"
-                onChange={(e) => setSelectedPeriod(e.target.value)}
+                onChange={(e) => {
+                  setSelectedPeriod(e.target.value);
+                  setCurrentPage(1);
+                }}
+                sx={{ bgcolor: designSystem.colors.background.light }}
               >
                 {periods.map((period) => (
                   <MenuItem key={period.value} value={period.value}>
@@ -416,7 +492,11 @@ const Historique = () => {
               <Select
                 value={selectedStatus}
                 label="Statut"
-                onChange={(e) => setSelectedStatus(e.target.value)}
+                onChange={(e) => {
+                  setSelectedStatus(e.target.value);
+                  setCurrentPage(1);
+                }}
+                sx={{ bgcolor: designSystem.colors.background.light }}
               >
                 {statuses.map((status) => (
                   <MenuItem key={status.value} value={status.value}>
@@ -432,24 +512,41 @@ const Historique = () => {
               <Select
                 value={sortBy}
                 label="Trier par"
-                onChange={(e) => setSortBy(e.target.value)}
+                onChange={(e) => {
+                  setSortBy(e.target.value);
+                  setCurrentPage(1);
+                }}
+                sx={{ bgcolor: designSystem.colors.background.light }}
               >
                 <MenuItem value="date">Date récente</MenuItem>
                 <MenuItem value="title">Titre</MenuItem>
                 <MenuItem value="author">Auteur</MenuItem>
-                <MenuItem value="rating">Note</MenuItem>
               </Select>
             </FormControl>
           </Grid>
           <Grid item xs={12} md={2}>
             <Box sx={{ display: 'flex', gap: 1, justifyContent: 'flex-end' }}>
-              <Tooltip title="Exporter en PDF">
-                <IconButton onClick={handleExport} color="primary">
+              <Tooltip title="Actualiser">
+                <IconButton 
+                  onClick={fetchLoans} 
+                  sx={{ color: designSystem.colors.secondary.main }}
+                >
+                  <Refresh />
+                </IconButton>
+              </Tooltip>
+              <Tooltip title="Exporter en JSON">
+                <IconButton 
+                  onClick={handleExport} 
+                  sx={{ color: designSystem.colors.secondary.main }}
+                >
                   <Download />
                 </IconButton>
               </Tooltip>
               <Tooltip title="Imprimer">
-                <IconButton onClick={handlePrint} color="primary">
+                <IconButton 
+                  onClick={handlePrint} 
+                  sx={{ color: designSystem.colors.secondary.main }}
+                >
                   <Print />
                 </IconButton>
               </Tooltip>
@@ -458,9 +555,17 @@ const Historique = () => {
         </Grid>
       </Card>
 
-      {/* Résultats */}
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
-        <Typography variant="h6" color="text.secondary">
+      {/* Results Header */}
+      <Box sx={{ 
+        display: 'flex', 
+        justifyContent: 'space-between', 
+        alignItems: 'center', 
+        mb: 2 
+      }}>
+        <Typography variant="body1" sx={{
+          ...designSystem.typography.body,
+          color: designSystem.colors.text.muted
+        }}>
           {filteredData.length} emprunt(s) trouvé(s)
         </Typography>
         <Box sx={{ display: 'flex', gap: 1 }}>
@@ -468,6 +573,7 @@ const Historique = () => {
             variant={viewMode === 'table' ? 'contained' : 'outlined'}
             size="small"
             onClick={() => setViewMode('table')}
+            sx={viewMode === 'table' ? designSystem.button.contained : designSystem.button.primary}
           >
             Vue tableau
           </Button>
@@ -475,344 +581,611 @@ const Historique = () => {
             variant={viewMode === 'cards' ? 'contained' : 'outlined'}
             size="small"
             onClick={() => setViewMode('cards')}
+            sx={viewMode === 'cards' ? designSystem.button.contained : designSystem.button.primary}
           >
             Vue cartes
           </Button>
         </Box>
       </Box>
 
-      {/* Contenu selon le mode de vue */}
+      {/* Table View - Catalogue Style */}
       {viewMode === 'table' ? (
-        <TableContainer component={Card}>
-          <Table>
-            <TableHead>
-              <TableRow>
-                <TableCell>Livre</TableCell>
-                <TableCell>Date d'emprunt</TableCell>
-                <TableCell>Retour prévu</TableCell>
-                <TableCell>Date de retour</TableCell>
-                <TableCell>Durée</TableCell>
-                <TableCell>Statut</TableCell>
-                <TableCell>Évaluation</TableCell>
-                <TableCell align="center">Actions</TableCell>
-              </TableRow>
-            </TableHead>
-            <TableBody>
-              {paginatedData.map((loan) => (
-                <TableRow key={loan.id} hover>
-                  <TableCell>
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                      <Avatar
-                        variant="rounded"
-                        src={loan.couverture}
-                        sx={{ width: 40, height: 60 }}
-                      >
-                        <Book />
-                      </Avatar>
-                      <Box>
-                        <Typography variant="body1" fontWeight="600">
-                          {loan.livre}
-                        </Typography>
-                        <Typography variant="body2" color="text.secondary">
-                          {loan.auteur}
-                        </Typography>
-                      </Box>
-                    </Box>
+        <Card sx={designSystem.card}>
+          <TableContainer>
+            <Table>
+              <TableHead sx={{ bgcolor: designSystem.colors.background.light }}>
+                <TableRow>
+                  <TableCell sx={{ 
+                    ...designSystem.typography.body,
+                    fontWeight: 700,
+                    color: designSystem.colors.primary.dark
+                  }}>
+                    Livre
                   </TableCell>
-                  <TableCell>{formatDate(loan.dateEmprunt)}</TableCell>
-                  <TableCell>{formatDate(loan.dateRetourPrevu)}</TableCell>
-                  <TableCell>{formatDate(loan.dateRetour)}</TableCell>
-                  <TableCell>
-                    <Typography variant="body2">
-                      {loan.duree} jours
-                    </Typography>
+                  <TableCell sx={{ 
+                    ...designSystem.typography.body,
+                    fontWeight: 700,
+                    color: designSystem.colors.primary.dark
+                  }}>
+                    Date d'emprunt
                   </TableCell>
-                  <TableCell>
-                    {getStatusChip(loan.statut, loan.retard)}
-                    {loan.retard && (
-                      <Typography variant="caption" color="error" display="block">
-                        {loan.joursRetard} jour(s) de retard
-                      </Typography>
-                    )}
+                  <TableCell sx={{ 
+                    ...designSystem.typography.body,
+                    fontWeight: 700,
+                    color: designSystem.colors.primary.dark
+                  }}>
+                    Retour prévu
                   </TableCell>
-                  <TableCell>
-                    <Rating value={loan.evaluation} readOnly size="small" />
+                  <TableCell sx={{ 
+                    ...designSystem.typography.body,
+                    fontWeight: 700,
+                    color: designSystem.colors.primary.dark
+                  }}>
+                    Date de retour
                   </TableCell>
-                  <TableCell align="center">
-                    <Tooltip title="Voir les détails">
-                      <IconButton 
-                        size="small" 
-                        color="primary"
-                        onClick={() => setSelectedLoan(loan)}
-                      >
-                        <Visibility />
-                      </IconButton>
-                    </Tooltip>
+                  <TableCell sx={{ 
+                    ...designSystem.typography.body,
+                    fontWeight: 700,
+                    color: designSystem.colors.primary.dark
+                  }}>
+                    Durée
+                  </TableCell>
+                  <TableCell sx={{ 
+                    ...designSystem.typography.body,
+                    fontWeight: 700,
+                    color: designSystem.colors.primary.dark
+                  }}>
+                    Statut
+                  </TableCell>
+                  <TableCell sx={{ 
+                    ...designSystem.typography.body,
+                    fontWeight: 700,
+                    color: designSystem.colors.primary.dark
+                  }}>
+                    Amende
+                  </TableCell>
+                  <TableCell align="center" sx={{ 
+                    ...designSystem.typography.body,
+                    fontWeight: 700,
+                    color: designSystem.colors.primary.dark
+                  }}>
+                    Actions
                   </TableCell>
                 </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </TableContainer>
-      ) : (
-        // Vue cartes
-        <Grid container spacing={3}>
-          {paginatedData.map((loan) => (
-            <Grid item xs={12} md={6} key={loan.id}>
-              <Card 
-                sx={{ 
-                  transition: 'all 0.3s ease',
-                  cursor: 'pointer',
-                  '&:hover': {
-                    transform: 'translateY(-4px)',
-                    boxShadow: theme.shadows[8]
-                  }
-                }}
-                onClick={() => setSelectedLoan(loan)}
-              >
-                <CardContent>
-                  <Box sx={{ display: 'flex', gap: 3 }}>
-                    <Avatar
-                      variant="rounded"
-                      src={loan.couverture}
-                      sx={{ width: 80, height: 120 }}
-                    >
-                      <Book />
-                    </Avatar>
-                    
-                    <Box sx={{ flexGrow: 1 }}>
-                      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 1 }}>
-                        <Typography variant="h6" fontWeight="600">
-                          {loan.livre}
-                        </Typography>
-                        {getStatusChip(loan.statut, loan.retard)}
-                      </Box>
-                      
-                      <Typography variant="body1" color="text.secondary" sx={{ mb: 2 }}>
-                        par {loan.auteur}
+              </TableHead>
+              <TableBody>
+                {paginatedData.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={8} align="center" sx={{ py: 4 }}>
+                      <Typography variant="body1" sx={{ 
+                        ...designSystem.typography.body,
+                        color: designSystem.colors.text.muted
+                      }}>
+                        Aucun emprunt dans l'historique
                       </Typography>
+                    </TableCell>
+                  </TableRow>
+                ) : (
+                  paginatedData.map((loan) => {
+                    const loanDuration = loan.returnDate 
+                      ? getDaysDiff(loan.loanDate, loan.returnDate)
+                      : null;
+                    const isLate = loan.status === 'RETURNED' && loan.returnDate && loan.dueDate && 
+                                  new Date(loan.returnDate) > new Date(loan.dueDate);
 
-                      <Grid container spacing={2} sx={{ mb: 2 }}>
-                        <Grid item xs={6}>
-                          <Typography variant="caption" color="text.secondary" display="block">
-                            Emprunté le
+                    return (
+                      <TableRow key={loan.id} hover>
+                        <TableCell>
+                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                            <Avatar
+                              variant="rounded"
+                              sx={{ 
+                                width: 40, 
+                                height: 60, 
+                                bgcolor: designSystem.colors.primary.light,
+                                color: designSystem.colors.primary.main
+                              }}
+                            >
+                              <Book />
+                            </Avatar>
+                            <Box>
+                              <Typography variant="body1" sx={{ 
+                                ...designSystem.typography.body,
+                                fontWeight: 600,
+                                color: designSystem.colors.text.primary
+                              }}>
+                                {loan.book?.title || 'Titre non disponible'}
+                              </Typography>
+                              <Typography variant="body2" sx={{ 
+                                ...designSystem.typography.body,
+                                color: designSystem.colors.text.muted,
+                                fontSize: '0.875rem'
+                              }}>
+                                {loan.book?.author || 'Auteur non disponible'}
+                              </Typography>
+                            </Box>
+                          </Box>
+                        </TableCell>
+                        <TableCell>
+                          <Typography variant="body2" sx={designSystem.typography.body}>
+                            {formatDate(loan.loanDate)}
                           </Typography>
-                          <Typography variant="body2" fontWeight="500">
-                            {formatDate(loan.dateEmprunt)}
+                        </TableCell>
+                        <TableCell>
+                          <Typography variant="body2" sx={designSystem.typography.body}>
+                            {formatDate(loan.dueDate)}
                           </Typography>
-                        </Grid>
-                        <Grid item xs={6}>
-                          <Typography variant="caption" color="text.secondary" display="block">
-                            Retourné le
+                        </TableCell>
+                        <TableCell>
+                          <Typography variant="body2" sx={{ 
+                            ...designSystem.typography.body,
+                            fontWeight: isLate ? 600 : 'normal',
+                            color: isLate ? designSystem.colors.status.unavailable.text : designSystem.colors.text.primary
+                          }}>
+                            {formatDate(loan.returnDate)}
                           </Typography>
-                          <Typography variant="body2" fontWeight="500">
-                            {formatDate(loan.dateRetour)}
+                          {isLate && (
+                            <Typography variant="caption" sx={{ 
+                              ...designSystem.typography.caption,
+                              color: designSystem.colors.status.unavailable.text
+                            }}>
+                              En retard
+                            </Typography>
+                          )}
+                        </TableCell>
+                        <TableCell>
+                          <Typography variant="body2" sx={designSystem.typography.body}>
+                            {loanDuration ? `${loanDuration} jours` : '-'}
                           </Typography>
-                        </Grid>
-                      </Grid>
-
-                      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                        <Box>
-                          <Typography variant="caption" color="text.secondary" display="block">
-                            Durée
-                          </Typography>
-                          <Typography variant="body2" fontWeight="500">
-                            {loan.duree} jours
-                          </Typography>
-                        </Box>
-                        <Rating value={loan.evaluation} readOnly size="small" />
-                      </Box>
-                    </Box>
-                  </Box>
-                </CardContent>
+                        </TableCell>
+                        <TableCell>
+                          {getStatusChip(loan.status)}
+                        </TableCell>
+                        <TableCell>
+                          {loan.fineAmount > 0 ? (
+                            <Chip
+                              label={`${loan.fineAmount.toFixed(2)} TND`}
+                              size="small"
+                              sx={{
+                                bgcolor: designSystem.colors.status.unavailable.bg,
+                                color: designSystem.colors.status.unavailable.text,
+                                border: `1px solid ${designSystem.colors.status.unavailable.border}`,
+                                fontWeight: 700,
+                                fontFamily: designSystem.typography.body.fontFamily
+                              }}
+                            />
+                          ) : (
+                            <Typography variant="body2" sx={{ 
+                              ...designSystem.typography.caption,
+                              color: designSystem.colors.text.muted
+                            }}>
+                              Aucune
+                            </Typography>
+                          )}
+                        </TableCell>
+                        <TableCell align="center">
+                          <Tooltip title="Voir les détails">
+                            <IconButton 
+                              size="small" 
+                              sx={{ color: designSystem.colors.secondary.main }}
+                              onClick={() => setSelectedLoan(loan)}
+                            >
+                              <Visibility />
+                            </IconButton>
+                          </Tooltip>
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })
+                )}
+              </TableBody>
+            </Table>
+          </TableContainer>
+        </Card>
+      ) : (
+        // Card View - Catalogue Style
+        <Grid container spacing={3}>
+          {paginatedData.length === 0 ? (
+            <Grid item xs={12}>
+              <Card sx={{ 
+                textAlign: 'center', 
+                p: 4,
+                ...designSystem.card,
+                bgcolor: designSystem.colors.background.card
+              }}>
+                <History sx={{ 
+                  fontSize: 60, 
+                  color: designSystem.colors.text.muted, 
+                  mb: 2 
+                }} />
+                <Typography variant="h6" sx={{ 
+                  ...designSystem.typography.h6,
+                  color: designSystem.colors.text.muted
+                }}>
+                  Aucun emprunt dans l'historique
+                </Typography>
               </Card>
             </Grid>
-          ))}
+          ) : (
+            paginatedData.map((loan) => {
+              const loanDuration = loan.returnDate 
+                ? getDaysDiff(loan.loanDate, loan.returnDate)
+                : null;
+              const isLate = loan.status === 'RETURNED' && loan.returnDate && loan.dueDate && 
+                            new Date(loan.returnDate) > new Date(loan.dueDate);
+
+              return (
+                <Grid item xs={12} md={6} key={loan.id}>
+                  <Card 
+                    sx={designSystem.card}
+                    onClick={() => setSelectedLoan(loan)}
+                  >
+                    <CardContent sx={{ 
+                      bgcolor: designSystem.colors.background.card,
+                      p: designSystem.spacing.cardPadding
+                    }}>
+                      <Box sx={{ display: 'flex', gap: 3 }}>
+                        <Avatar
+                          variant="rounded"
+                          sx={{ 
+                            width: 80, 
+                            height: 120, 
+                            bgcolor: designSystem.colors.primary.light,
+                            color: designSystem.colors.primary.main
+                          }}
+                        >
+                          <Book />
+                        </Avatar>
+                        
+                        <Box sx={{ flexGrow: 1 }}>
+                          <Box sx={{ 
+                            display: 'flex', 
+                            justifyContent: 'space-between', 
+                            alignItems: 'flex-start', 
+                            mb: 1 
+                          }}>
+                            <Typography variant="h6" sx={{ 
+                              ...designSystem.typography.h6,
+                              fontWeight: 700
+                            }}>
+                              {loan.book?.title || 'Titre non disponible'}
+                            </Typography>
+                            {getStatusChip(loan.status)}
+                          </Box>
+                          
+                          <Typography variant="body2" sx={{ 
+                            ...designSystem.typography.body,
+                            color: designSystem.colors.text.muted,
+                            fontStyle: 'italic',
+                            mb: 2
+                          }}>
+                            par {loan.book?.author || 'Auteur non disponible'}
+                          </Typography>
+
+                          <Grid container spacing={2} sx={{ mb: 2 }}>
+                            <Grid item xs={6}>
+                              <Typography variant="caption" sx={{ 
+                                ...designSystem.typography.caption,
+                                display: 'block'
+                              }}>
+                                Emprunté le
+                              </Typography>
+                              <Typography variant="body2" sx={{ 
+                                ...designSystem.typography.body,
+                                fontWeight: 500
+                              }}>
+                                {formatDate(loan.loanDate)}
+                              </Typography>
+                            </Grid>
+                            <Grid item xs={6}>
+                              <Typography variant="caption" sx={{ 
+                                ...designSystem.typography.caption,
+                                display: 'block'
+                              }}>
+                                Retourné le
+                              </Typography>
+                              <Typography variant="body2" sx={{ 
+                                ...designSystem.typography.body,
+                                fontWeight: 500
+                              }}>
+                                {formatDate(loan.returnDate)}
+                              </Typography>
+                            </Grid>
+                          </Grid>
+
+                          <Box sx={{ 
+                            display: 'flex', 
+                            justifyContent: 'space-between', 
+                            alignItems: 'center' 
+                          }}>
+                            <Box>
+                              <Typography variant="caption" sx={{ 
+                                ...designSystem.typography.caption,
+                                display: 'block'
+                              }}>
+                                Durée
+                              </Typography>
+                              <Typography variant="body2" sx={{ 
+                                ...designSystem.typography.body,
+                                fontWeight: 500
+                              }}>
+                                {loanDuration ? `${loanDuration} jours` : '-'}
+                              </Typography>
+                            </Box>
+                            {loan.fineAmount > 0 && (
+                              <Chip
+                                label={`${loan.fineAmount.toFixed(2)} TND`}
+                                size="small"
+                                sx={{
+                                  bgcolor: designSystem.colors.status.unavailable.bg,
+                                  color: designSystem.colors.status.unavailable.text,
+                                  border: `1px solid ${designSystem.colors.status.unavailable.border}`,
+                                  fontFamily: designSystem.typography.body.fontFamily
+                                }}
+                              />
+                            )}
+                          </Box>
+                          {isLate && (
+                            <Alert severity="warning" sx={{ 
+                              mt: 1, 
+                              bgcolor: '#fef3c7',
+                              border: `1px solid #fbbf24`,
+                              color: '#92400e'
+                            }}>
+                              Retourné en retard
+                            </Alert>
+                          )}
+                        </Box>
+                      </Box>
+                    </CardContent>
+                  </Card>
+                </Grid>
+              );
+            })
+          )}
         </Grid>
       )}
 
       {/* Pagination */}
       {filteredData.length > itemsPerPage && (
-        <Box sx={{ display: 'flex', justifyContent: 'center', mt: 4 }}>
+        <Box sx={{ display: 'flex', justifyContent: 'center', mt: 6 }}>
           <Pagination
             count={Math.ceil(filteredData.length / itemsPerPage)}
             page={currentPage}
-            onChange={(event, value) => setCurrentPage(value)}
-            color="primary"
-            size="large"
+            onChange={(e, value) => setCurrentPage(value)}
+            sx={{
+              '& .MuiPaginationItem-root': {
+                fontFamily: designSystem.typography.body.fontFamily,
+              },
+              '& .Mui-selected': {
+                backgroundColor: designSystem.colors.primary.light + '!important',
+                color: 'white !important',
+              }
+            }}
           />
         </Box>
       )}
 
-      {/* Dialog détail de l'emprunt */}
+      {/* Dialog détail de l'emprunt - Catalogue Style */}
       <Dialog 
         open={!!selectedLoan} 
         onClose={() => setSelectedLoan(null)}
         maxWidth="md"
         fullWidth
+        PaperProps={{
+          sx: {
+            borderRadius: designSystem.card.borderRadius,
+            border: designSystem.card.border
+          }
+        }}
       >
         {selectedLoan && (
           <>
-            <DialogTitle>
-              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <Typography variant="h5" fontWeight="600">
+            <DialogTitle sx={{ 
+              bgcolor: designSystem.colors.background.main, 
+              borderBottom: `1px solid ${designSystem.colors.border.light}` 
+            }}>
+              <Box sx={{ 
+                display: 'flex', 
+                justifyContent: 'space-between', 
+                alignItems: 'center' 
+              }}>
+                <Typography variant="h5" sx={{ 
+                  ...designSystem.typography.h5,
+                  fontWeight: 700,
+                  color: designSystem.colors.primary.dark
+                }}>
                   Détails de l'emprunt
                 </Typography>
+                <IconButton onClick={() => setSelectedLoan(null)}>
+                  <Close />
+                </IconButton>
               </Box>
             </DialogTitle>
-            <DialogContent>
+            <DialogContent sx={{ pt: 3, bgcolor: designSystem.colors.background.main }}>
               <Grid container spacing={3}>
                 <Grid item xs={12} md={4}>
                   <Avatar
                     variant="rounded"
-                    src={selectedLoan.couverture}
-                    sx={{ width: '100%', height: 200 }}
+                    sx={{ 
+                      width: '100%', 
+                      height: 200,
+                      bgcolor: designSystem.colors.primary.light,
+                      color: designSystem.colors.primary.main
+                    }}
                   >
-                    <Book />
+                    <Book sx={{ fontSize: 80 }} />
                   </Avatar>
                 </Grid>
                 <Grid item xs={12} md={8}>
-                  <Typography variant="h4" fontWeight="700" gutterBottom>
-                    {selectedLoan.livre}
+                  <Typography 
+                    variant="h4" 
+                    gutterBottom
+                    sx={{ 
+                      ...designSystem.typography.h4,
+                      fontWeight: 700
+                    }}
+                  >
+                    {selectedLoan.book?.title || 'Titre non disponible'}
                   </Typography>
-                  <Typography variant="h6" color="text.secondary" gutterBottom>
-                    par {selectedLoan.auteur}
+                  <Typography 
+                    variant="h6" 
+                    gutterBottom
+                    sx={{ 
+                      ...designSystem.typography.h6,
+                      color: designSystem.colors.text.muted,
+                      fontStyle: 'italic'
+                    }}
+                  >
+                    par {selectedLoan.book?.author || 'Auteur non disponible'}
                   </Typography>
                   
-                  <Box sx={{ mb: 3 }}>
-                    <Rating value={selectedLoan.evaluation} readOnly size="large" />
-                    <Typography variant="body2" color="text.secondary">
-                      ({selectedLoan.evaluation}/5)
+                  {selectedLoan.book?.isbn && (
+                    <Typography 
+                      variant="body2" 
+                      gutterBottom
+                      sx={{ 
+                        ...designSystem.typography.body,
+                        color: designSystem.colors.text.muted
+                      }}
+                    >
+                      ISBN: {selectedLoan.book.isbn}
                     </Typography>
-                  </Box>
+                  )}
 
                   <Divider sx={{ my: 2 }} />
 
                   <Grid container spacing={2}>
                     <Grid item xs={6}>
-                      <Typography variant="body2" fontWeight="600" color="text.secondary">
+                      <Typography variant="body2" sx={{ 
+                        ...designSystem.typography.body,
+                        fontWeight: 600,
+                        color: designSystem.colors.text.muted
+                      }}>
                         Date d'emprunt:
                       </Typography>
-                      <Typography variant="body1">
-                        {formatDate(selectedLoan.dateEmprunt)}
+                      <Typography variant="body1" sx={designSystem.typography.body}>
+                        {formatDate(selectedLoan.loanDate)}
                       </Typography>
                     </Grid>
                     <Grid item xs={6}>
-                      <Typography variant="body2" fontWeight="600" color="text.secondary">
+                      <Typography variant="body2" sx={{ 
+                        ...designSystem.typography.body,
+                        fontWeight: 600,
+                        color: designSystem.colors.text.muted
+                      }}>
                         Retour prévu:
                       </Typography>
-                      <Typography variant="body1">
-                        {formatDate(selectedLoan.dateRetourPrevu)}
+                      <Typography variant="body1" sx={designSystem.typography.body}>
+                        {formatDate(selectedLoan.dueDate)}
                       </Typography>
                     </Grid>
                     <Grid item xs={6}>
-                      <Typography variant="body2" fontWeight="600" color="text.secondary">
+                      <Typography variant="body2" sx={{ 
+                        ...designSystem.typography.body,
+                        fontWeight: 600,
+                        color: designSystem.colors.text.muted
+                      }}>
                         Date de retour:
                       </Typography>
-                      <Typography variant="body1">
-                        {formatDate(selectedLoan.dateRetour)}
+                      <Typography variant="body1" sx={designSystem.typography.body}>
+                        {formatDate(selectedLoan.returnDate)}
                       </Typography>
                     </Grid>
                     <Grid item xs={6}>
-                      <Typography variant="body2" fontWeight="600" color="text.secondary">
+                      <Typography variant="body2" sx={{ 
+                        ...designSystem.typography.body,
+                        fontWeight: 600,
+                        color: designSystem.colors.text.muted
+                      }}>
                         Durée:
                       </Typography>
-                      <Typography variant="body1">
-                        {selectedLoan.duree} jours
+                      <Typography variant="body1" sx={designSystem.typography.body}>
+                        {getDaysDiff(selectedLoan.loanDate, selectedLoan.returnDate)} jours
                       </Typography>
                     </Grid>
-                    {selectedLoan.retard && (
+                    <Grid item xs={12}>
+                      <Typography variant="body2" sx={{ 
+                        ...designSystem.typography.body,
+                        fontWeight: 600,
+                        color: designSystem.colors.text.muted
+                      }}>
+                        Statut:
+                      </Typography>
+                      {getStatusChip(selectedLoan.status)}
+                    </Grid>
+                    {selectedLoan.fineAmount > 0 && (
                       <Grid item xs={12}>
-                        <Alert severity="warning">
-                          Retourné avec {selectedLoan.joursRetard} jour(s) de retard
-                          {selectedLoan.amende && ` - Amende: ${selectedLoan.amende}`}
+                        <Alert severity="warning" sx={{ 
+                          bgcolor: '#fef3c7',
+                          border: `1px solid #fbbf24`,
+                          color: '#92400e'
+                        }}>
+                          Amende appliquée: {selectedLoan.fineAmount.toFixed(2)} TND
                         </Alert>
                       </Grid>
                     )}
+                    {selectedLoan.notes && (
+                      <Grid item xs={12}>
+                        <Typography variant="body2" sx={{ 
+                          ...designSystem.typography.body,
+                          fontWeight: 600,
+                          color: designSystem.colors.text.muted
+                        }}>
+                          Notes:
+                        </Typography>
+                        <Typography variant="body1" sx={{ 
+                          ...designSystem.typography.body,
+                          fontStyle: 'italic'
+                        }}>
+                          "{selectedLoan.notes}"
+                        </Typography>
+                      </Grid>
+                    )}
                   </Grid>
-
-                  {selectedLoan.commentaire && (
-                    <>
-                      <Divider sx={{ my: 2 }} />
-                      <Typography variant="body2" fontWeight="600" color="text.secondary" gutterBottom>
-                        Votre commentaire:
-                      </Typography>
-                      <Typography variant="body1" sx={{ fontStyle: 'italic' }}>
-                        "{selectedLoan.commentaire}"
-                      </Typography>
-                    </>
-                  )}
                 </Grid>
               </Grid>
             </DialogContent>
-            <DialogActions>
-              <Button onClick={() => setSelectedLoan(null)}>
+            <DialogActions sx={{ 
+              bgcolor: designSystem.colors.background.main, 
+              borderTop: `1px solid ${designSystem.colors.border.light}`, 
+              p: 2 
+            }}>
+              <Button 
+                onClick={() => setSelectedLoan(null)}
+                sx={designSystem.button.primary}
+              >
                 Fermer
               </Button>
-              <Button variant="contained">
-                Réemprunter ce livre
-              </Button>
+              {selectedLoan.book?.id && selectedLoan.status === 'RETURNED' && (
+                <Button 
+                  variant="contained"
+                  onClick={() => handleBorrowAgain(selectedLoan.book.id)}
+                  sx={designSystem.button.contained}
+                >
+                  Réemprunter ce livre
+                </Button>
+              )}
             </DialogActions>
           </>
         )}
       </Dialog>
 
-      {/* Section recommandations basée sur l'historique */}
-      {filteredData.length > 0 && (
-        <Card sx={{ mt: 4 }}>
-          <CardContent>
-            <Typography variant="h5" fontWeight="600" sx={{ mb: 3 }}>
-              Recommandations basées sur votre historique
-            </Typography>
-            <Grid container spacing={2}>
-              <Grid item xs={12} sm={6} md={3}>
-                <Paper sx={{ p: 2, textAlign: 'center', cursor: 'pointer' }}>
-                  <LocalLibrary sx={{ fontSize: 40, color: 'primary.main', mb: 1 }} />
-                  <Typography variant="h6" fontWeight="600">
-                    Autres livres de Camus
-                  </Typography>
-                  <Typography variant="body2" color="text.secondary">
-                    Découvrez La Peste, La Chute...
-                  </Typography>
-                </Paper>
-              </Grid>
-              <Grid item xs={12} sm={6} md={3}>
-                <Paper sx={{ p: 2, textAlign: 'center', cursor: 'pointer' }}>
-                  <TrendingUp sx={{ fontSize: 40, color: 'success.main', mb: 1 }} />
-                  <Typography variant="h6" fontWeight="600">
-                    Romans classiques
-                  </Typography>
-                  <Typography variant="body2" color="text.secondary">
-                    Votre genre préféré
-                  </Typography>
-                </Paper>
-              </Grid>
-              <Grid item xs={12} sm={6} md={3}>
-                <Paper sx={{ p: 2, textAlign: 'center', cursor: 'pointer' }}>
-                  <Star sx={{ fontSize: 40, color: 'warning.main', mb: 1 }} />
-                  <Typography variant="h6" fontWeight="600">
-                    Vos livres 5 étoiles
-                  </Typography>
-                  <Typography variant="body2" color="text.secondary">
-                    À relire absolument
-                  </Typography>
-                </Paper>
-              </Grid>
-              <Grid item xs={12} sm={6} md={3}>
-                <Paper sx={{ p: 2, textAlign: 'center', cursor: 'pointer' }}>
-                  <Book sx={{ fontSize: 40, color: 'info.main', mb: 1 }} />
-                  <Typography variant="h6" fontWeight="600">
-                    Nouvelles acquisitions
-                  </Typography>
-                  <Typography variant="body2" color="text.secondary">
-                    Dans vos genres favoris
-                  </Typography>
-                </Paper>
-              </Grid>
-            </Grid>
-          </CardContent>
-        </Card>
-      )}
+      {/* Snackbar */}
+      <Snackbar
+        open={snackbar.open}
+        autoHideDuration={6000}
+        onClose={() => setSnackbar({ ...snackbar, open: false })}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+      >
+        <Alert 
+          severity={snackbar.severity} 
+          sx={{ width: '100%' }}
+          onClose={() => setSnackbar({ ...snackbar, open: false })}
+        >
+          {snackbar.message}
+        </Alert>
+      </Snackbar>
     </Container>
   );
 };

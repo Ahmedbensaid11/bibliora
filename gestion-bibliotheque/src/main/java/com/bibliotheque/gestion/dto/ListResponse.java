@@ -18,4 +18,23 @@ public class ListResponse<T> extends ApiResponse {
         this.data = data;
         this.totalElements = data != null ? data.size() : 0;
     }
+
+    private int currentPage;
+    private int totalPages;
+    private int pageSize;
+    public void setTotalElements(int totalElements) {
+        this.totalElements = totalElements;
+    }
+
+    public void setCurrentPage(int currentPage) {
+        this.currentPage = currentPage;
+    }
+
+    public void setTotalPages(int totalPages) {
+        this.totalPages = totalPages;
+    }
+
+    public void setPageSize(int pageSize) {
+        this.pageSize = pageSize;
+    }
 }

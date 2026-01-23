@@ -87,10 +87,26 @@ public interface CategoryRepository extends JpaRepository<Category, Long> {
      */
     @Query("SELECT CASE WHEN COUNT(c) > 0 THEN true ELSE false END FROM Category c WHERE c.parent.id = :parentId AND c.active = true")
     boolean hasChildren(@Param("parentId") Long parentId);
+    boolean existsByName(String name);
 
     /**
      * Trouve le chemin complet d'une catégorie (récursif)
      */
     @Query("SELECT c FROM Category c WHERE c.id = :categoryId AND c.active = true")
     Optional<Category> findCategoryWithPath(@Param("categoryId") Long categoryId);
+
+    @Query("SELECT COUNT(c) > 0 FROM Category c WHERE c.name = :name AND c.id != :id")
+    boolean existsByNameAndIdNot(@Param("name") String name, @Param("id") Long id);
+
+    @Query("SELECT c FROM Category c WHERE c.name = :name AND c.id != :id")
+    Category findByNameAndIdNot(@Param("name") String name, @Param("id") Long id);
+
+    boolean existsByParentId(Long parentId);
+
+
+
+    @Query("SELECT c FROM Category c WHERE c.active = true ORDER BY c.name")
+    List<Category> findAllActive();
+
+
 }

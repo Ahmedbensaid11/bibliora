@@ -3,7 +3,9 @@ package com.bibliotheque.gestion.controller;
 import com.bibliotheque.gestion.dto.ApiResponse;
 import com.bibliotheque.gestion.dto.DataResponse;
 import com.bibliotheque.gestion.dto.ListResponse;
+import com.bibliotheque.gestion.dto.CategoryDTO;
 import com.bibliotheque.gestion.entity.Category;
+import com.bibliotheque.gestion.mapper.CategoryMapper;
 import com.bibliotheque.gestion.service.CategoryService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -13,6 +15,7 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/api/categories")
@@ -22,13 +25,14 @@ import java.util.Optional;
 public class CategoryController {
 
     private final CategoryService categoryService;
+    private final CategoryMapper categoryMapper;
 
     /**
      * Crée une nouvelle catégorie
      * POST /api/categories
      */
     @PostMapping
-    public ResponseEntity<DataResponse<Category>> createCategory(@RequestBody CreateCategoryRequest request) {
+    public ResponseEntity<DataResponse<CategoryDTO>> createCategory(@RequestBody CreateCategoryRequest request) {
         log.info("Creating category: {}", request.getName());
 
         try {
@@ -37,8 +41,9 @@ public class CategoryController {
                     request.getDescription(),
                     request.getParentId()
             );
+            CategoryDTO dto = categoryMapper.toDTO(category);
             return ResponseEntity.status(HttpStatus.CREATED)
-                    .body(new DataResponse<>(true, "Category created successfully", category));
+                    .body(new DataResponse<>(true, "Category created successfully", dto));
         } catch (RuntimeException e) {
             log.error("Error creating category: {}", e.getMessage());
             return ResponseEntity.badRequest()
@@ -51,9 +56,12 @@ public class CategoryController {
      * GET /api/categories
      */
     @GetMapping
-    public ResponseEntity<ListResponse<Category>> getAllCategories() {
+    public ResponseEntity<ListResponse<CategoryDTO>> getAllCategories() {
         List<Category> categories = categoryService.getAllCategories();
-        return ResponseEntity.ok(new ListResponse<>(true, "Categories retrieved successfully", categories));
+        List<CategoryDTO> dtos = categories.stream()
+                .map(categoryMapper::toDTO)
+                .collect(Collectors.toList());
+        return ResponseEntity.ok(new ListResponse<>(true, "Categories retrieved successfully", dtos));
     }
 
     /**
@@ -61,11 +69,12 @@ public class CategoryController {
      * GET /api/categories/{id}
      */
     @GetMapping("/{id}")
-    public ResponseEntity<DataResponse<Category>> getCategoryById(@PathVariable Long id) {
+    public ResponseEntity<DataResponse<CategoryDTO>> getCategoryById(@PathVariable Long id) {
         Optional<Category> category = categoryService.getCategoryById(id);
 
         if (category.isPresent()) {
-            return ResponseEntity.ok(new DataResponse<>(true, "Category retrieved successfully", category.get()));
+            CategoryDTO dto = categoryMapper.toDTO(category.get());
+            return ResponseEntity.ok(new DataResponse<>(true, "Category retrieved successfully", dto));
         } else {
             return ResponseEntity.notFound().build();
         }
@@ -76,7 +85,7 @@ public class CategoryController {
      * PUT /api/categories/{id}
      */
     @PutMapping("/{id}")
-    public ResponseEntity<DataResponse<Category>> updateCategory(
+    public ResponseEntity<DataResponse<CategoryDTO>> updateCategory(
             @PathVariable Long id,
             @RequestBody UpdateCategoryRequest request) {
 
@@ -89,7 +98,8 @@ public class CategoryController {
                     request.getDescription(),
                     request.getParentId()
             );
-            return ResponseEntity.ok(new DataResponse<>(true, "Category updated successfully", updatedCategory));
+            CategoryDTO dto = categoryMapper.toDTO(updatedCategory);
+            return ResponseEntity.ok(new DataResponse<>(true, "Category updated successfully", dto));
         } catch (RuntimeException e) {
             log.error("Error updating category: {}", e.getMessage());
             return ResponseEntity.badRequest()
@@ -120,9 +130,12 @@ public class CategoryController {
      * GET /api/categories/root
      */
     @GetMapping("/root")
-    public ResponseEntity<ListResponse<Category>> getRootCategories() {
+    public ResponseEntity<ListResponse<CategoryDTO>> getRootCategories() {
         List<Category> rootCategories = categoryService.getRootCategories();
-        return ResponseEntity.ok(new ListResponse<>(true, "Root categories retrieved successfully", rootCategories));
+        List<CategoryDTO> dtos = rootCategories.stream()
+                .map(categoryMapper::toDTO)
+                .collect(Collectors.toList());
+        return ResponseEntity.ok(new ListResponse<>(true, "Root categories retrieved successfully", dtos));
     }
 
     /**
@@ -130,9 +143,12 @@ public class CategoryController {
      * GET /api/categories/{id}/children
      */
     @GetMapping("/{id}/children")
-    public ResponseEntity<ListResponse<Category>> getChildCategories(@PathVariable Long id) {
+    public ResponseEntity<ListResponse<CategoryDTO>> getChildCategories(@PathVariable Long id) {
         List<Category> children = categoryService.getChildCategories(id);
-        return ResponseEntity.ok(new ListResponse<>(true, "Child categories retrieved successfully", children));
+        List<CategoryDTO> dtos = children.stream()
+                .map(categoryMapper::toDTO)
+                .collect(Collectors.toList());
+        return ResponseEntity.ok(new ListResponse<>(true, "Child categories retrieved successfully", dtos));
     }
 
     /**
@@ -140,9 +156,12 @@ public class CategoryController {
      * GET /api/categories/level/{level}
      */
     @GetMapping("/level/{level}")
-    public ResponseEntity<ListResponse<Category>> getCategoriesByLevel(@PathVariable Integer level) {
+    public ResponseEntity<ListResponse<CategoryDTO>> getCategoriesByLevel(@PathVariable Integer level) {
         List<Category> categories = categoryService.getCategoriesByLevel(level);
-        return ResponseEntity.ok(new ListResponse<>(true, "Categories by level retrieved successfully", categories));
+        List<CategoryDTO> dtos = categories.stream()
+                .map(categoryMapper::toDTO)
+                .collect(Collectors.toList());
+        return ResponseEntity.ok(new ListResponse<>(true, "Categories by level retrieved successfully", dtos));
     }
 
     /**
@@ -150,9 +169,12 @@ public class CategoryController {
      * GET /api/categories/search?name={name}
      */
     @GetMapping("/search")
-    public ResponseEntity<ListResponse<Category>> searchCategories(@RequestParam String name) {
+    public ResponseEntity<ListResponse<CategoryDTO>> searchCategories(@RequestParam String name) {
         List<Category> categories = categoryService.searchCategoriesByName(name);
-        return ResponseEntity.ok(new ListResponse<>(true, "Search results retrieved successfully", categories));
+        List<CategoryDTO> dtos = categories.stream()
+                .map(categoryMapper::toDTO)
+                .collect(Collectors.toList());
+        return ResponseEntity.ok(new ListResponse<>(true, "Search results retrieved successfully", dtos));
     }
 
     /**
@@ -160,9 +182,12 @@ public class CategoryController {
      * GET /api/categories/with-books
      */
     @GetMapping("/with-books")
-    public ResponseEntity<ListResponse<Category>> getCategoriesWithBooks() {
+    public ResponseEntity<ListResponse<CategoryDTO>> getCategoriesWithBooks() {
         List<Category> categories = categoryService.getCategoriesWithBooks();
-        return ResponseEntity.ok(new ListResponse<>(true, "Categories with books retrieved successfully", categories));
+        List<CategoryDTO> dtos = categories.stream()
+                .map(categoryMapper::toDTO)
+                .collect(Collectors.toList());
+        return ResponseEntity.ok(new ListResponse<>(true, "Categories with books retrieved successfully", dtos));
     }
 
     /**
@@ -170,9 +195,12 @@ public class CategoryController {
      * GET /api/categories/empty
      */
     @GetMapping("/empty")
-    public ResponseEntity<ListResponse<Category>> getEmptyCategories() {
+    public ResponseEntity<ListResponse<CategoryDTO>> getEmptyCategories() {
         List<Category> categories = categoryService.getEmptyCategories();
-        return ResponseEntity.ok(new ListResponse<>(true, "Empty categories retrieved successfully", categories));
+        List<CategoryDTO> dtos = categories.stream()
+                .map(categoryMapper::toDTO)
+                .collect(Collectors.toList());
+        return ResponseEntity.ok(new ListResponse<>(true, "Empty categories retrieved successfully", dtos));
     }
 
     /**

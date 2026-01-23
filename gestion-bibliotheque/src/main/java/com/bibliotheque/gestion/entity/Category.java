@@ -1,5 +1,7 @@
 package com.bibliotheque.gestion.entity;
 
+import com.fasterxml.jackson.annotation.JsonBackReference;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;
@@ -34,15 +36,19 @@ public class Category {
     // Self-referencing for hierarchy
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "parent_id")
+    @JsonIgnore
     private Category parent;
 
     @OneToMany(mappedBy = "parent", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     @Builder.Default
+    @JsonIgnore
     private Set<Category> children = new HashSet<>();
 
     // Many-to-Many relationship with Books (will be defined in Book entity)
     @ManyToMany(mappedBy = "categories", fetch = FetchType.LAZY)
     @Builder.Default
+    @JsonBackReference
+
     private Set<Book> books = new HashSet<>();
 
     // Soft delete flag

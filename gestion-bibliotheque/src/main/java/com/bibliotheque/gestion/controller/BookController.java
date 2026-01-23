@@ -4,7 +4,9 @@ import com.bibliotheque.gestion.dto.ApiResponse;
 import com.bibliotheque.gestion.dto.DataResponse;
 import com.bibliotheque.gestion.dto.ListResponse;
 import com.bibliotheque.gestion.dto.PageResponse;
+import com.bibliotheque.gestion.dto.BookDTO;
 import com.bibliotheque.gestion.entity.Book;
+import com.bibliotheque.gestion.mapper.BookMapper;
 import com.bibliotheque.gestion.service.BookService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -18,6 +20,7 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/api/books")
@@ -27,13 +30,14 @@ import java.util.Set;
 public class BookController {
 
     private final BookService bookService;
+    private final BookMapper bookMapper;
 
     /**
      * Crée un nouveau livre
      * POST /api/books
      */
     @PostMapping
-    public ResponseEntity<DataResponse<Book>> createBook(@RequestBody CreateBookRequest request) {
+    public ResponseEntity<DataResponse<BookDTO>> createBook(@RequestBody CreateBookRequest request) {
         log.info("Creating book: {} by {}", request.getTitle(), request.getAuthor());
 
         try {
@@ -48,8 +52,9 @@ public class BookController {
                     request.getTotalCopies(),
                     request.getCategoryIds()
             );
+            BookDTO dto = bookMapper.toDTO(book);
             return ResponseEntity.status(HttpStatus.CREATED)
-                    .body(new DataResponse<>(true, "Book created successfully", book));
+                    .body(new DataResponse<>(true, "Book created successfully", dto));
         } catch (RuntimeException e) {
             log.error("Error creating book: {}", e.getMessage());
             return ResponseEntity.badRequest()
@@ -62,9 +67,12 @@ public class BookController {
      * GET /api/books
      */
     @GetMapping
-    public ResponseEntity<ListResponse<Book>> getAllBooks() {
+    public ResponseEntity<ListResponse<BookDTO>> getAllBooks() {
         List<Book> books = bookService.getAllBooks();
-        return ResponseEntity.ok(new ListResponse<>(true, "Books retrieved successfully", books));
+        List<BookDTO> dtos = books.stream()
+                .map(bookMapper::toDTO)
+                .collect(Collectors.toList());
+        return ResponseEntity.ok(new ListResponse<>(true, "Books retrieved successfully", dtos));
     }
 
     /**
@@ -72,11 +80,12 @@ public class BookController {
      * GET /api/books/{id}
      */
     @GetMapping("/{id}")
-    public ResponseEntity<DataResponse<Book>> getBookById(@PathVariable Long id) {
+    public ResponseEntity<DataResponse<BookDTO>> getBookById(@PathVariable Long id) {
         Optional<Book> book = bookService.getBookById(id);
 
         if (book.isPresent()) {
-            return ResponseEntity.ok(new DataResponse<>(true, "Book retrieved successfully", book.get()));
+            BookDTO dto = bookMapper.toDTO(book.get());
+            return ResponseEntity.ok(new DataResponse<>(true, "Book retrieved successfully", dto));
         } else {
             return ResponseEntity.notFound().build();
         }
@@ -87,11 +96,12 @@ public class BookController {
      * GET /api/books/isbn/{isbn}
      */
     @GetMapping("/isbn/{isbn}")
-    public ResponseEntity<DataResponse<Book>> getBookByIsbn(@PathVariable String isbn) {
+    public ResponseEntity<DataResponse<BookDTO>> getBookByIsbn(@PathVariable String isbn) {
         Optional<Book> book = bookService.getBookByIsbn(isbn);
 
         if (book.isPresent()) {
-            return ResponseEntity.ok(new DataResponse<>(true, "Book retrieved successfully", book.get()));
+            BookDTO dto = bookMapper.toDTO(book.get());
+            return ResponseEntity.ok(new DataResponse<>(true, "Book retrieved successfully", dto));
         } else {
             return ResponseEntity.notFound().build();
         }
@@ -102,7 +112,7 @@ public class BookController {
      * PUT /api/books/{id}
      */
     @PutMapping("/{id}")
-    public ResponseEntity<DataResponse<Book>> updateBook(
+    public ResponseEntity<DataResponse<BookDTO>> updateBook(
             @PathVariable Long id,
             @RequestBody UpdateBookRequest request) {
 
@@ -121,7 +131,8 @@ public class BookController {
                     request.getTotalCopies(),
                     request.getCategoryIds()
             );
-            return ResponseEntity.ok(new DataResponse<>(true, "Book updated successfully", updatedBook));
+            BookDTO dto = bookMapper.toDTO(updatedBook);
+            return ResponseEntity.ok(new DataResponse<>(true, "Book updated successfully", dto));
         } catch (RuntimeException e) {
             log.error("Error updating book: {}", e.getMessage());
             return ResponseEntity.badRequest()
@@ -152,9 +163,12 @@ public class BookController {
      * GET /api/books/search/title?q={title}
      */
     @GetMapping("/search/title")
-    public ResponseEntity<ListResponse<Book>> searchBooksByTitle(@RequestParam String q) {
+    public ResponseEntity<ListResponse<BookDTO>> searchBooksByTitle(@RequestParam String q) {
         List<Book> books = bookService.searchBooksByTitle(q);
-        return ResponseEntity.ok(new ListResponse<>(true, "Search results retrieved successfully", books));
+        List<BookDTO> dtos = books.stream()
+                .map(bookMapper::toDTO)
+                .collect(Collectors.toList());
+        return ResponseEntity.ok(new ListResponse<>(true, "Search results retrieved successfully", dtos));
     }
 
     /**
@@ -162,9 +176,12 @@ public class BookController {
      * GET /api/books/search/author?q={author}
      */
     @GetMapping("/search/author")
-    public ResponseEntity<ListResponse<Book>> searchBooksByAuthor(@RequestParam String q) {
+    public ResponseEntity<ListResponse<BookDTO>> searchBooksByAuthor(@RequestParam String q) {
         List<Book> books = bookService.searchBooksByAuthor(q);
-        return ResponseEntity.ok(new ListResponse<>(true, "Search results retrieved successfully", books));
+        List<BookDTO> dtos = books.stream()
+                .map(bookMapper::toDTO)
+                .collect(Collectors.toList());
+        return ResponseEntity.ok(new ListResponse<>(true, "Search results retrieved successfully", dtos));
     }
 
     /**
@@ -172,7 +189,7 @@ public class BookController {
      * GET /api/books/search?title=...&author=...&publisher=...&genre=...&yearFrom=...&yearTo=...&isbn=...&page=0&size=10
      */
     @GetMapping("/search")
-    public ResponseEntity<PageResponse<Book>> searchBooks(
+    public ResponseEntity<PageResponse<BookDTO>> searchBooks(
             @RequestParam(required = false) String title,
             @RequestParam(required = false) String author,
             @RequestParam(required = false) String publisher,
@@ -185,7 +202,11 @@ public class BookController {
 
         Pageable pageable = PageRequest.of(page, size);
         Page<Book> books = bookService.searchBooks(title, author, publisher, genre, yearFrom, yearTo, isbn, pageable);
-        return ResponseEntity.ok(new PageResponse<>(true, "Search results retrieved successfully", books));
+
+        // Convert Page<Book> to Page<BookDTO>
+        Page<BookDTO> dtoPage = books.map(bookMapper::toDTO);
+
+        return ResponseEntity.ok(new PageResponse<>(true, "Search results retrieved successfully", dtoPage));
     }
 
     /**
@@ -193,9 +214,12 @@ public class BookController {
      * GET /api/books/category/{categoryId}
      */
     @GetMapping("/category/{categoryId}")
-    public ResponseEntity<ListResponse<Book>> getBooksByCategory(@PathVariable Long categoryId) {
+    public ResponseEntity<ListResponse<BookDTO>> getBooksByCategory(@PathVariable Long categoryId) {
         List<Book> books = bookService.getBooksByCategory(categoryId);
-        return ResponseEntity.ok(new ListResponse<>(true, "Books by category retrieved successfully", books));
+        List<BookDTO> dtos = books.stream()
+                .map(bookMapper::toDTO)
+                .collect(Collectors.toList());
+        return ResponseEntity.ok(new ListResponse<>(true, "Books by category retrieved successfully", dtos));
     }
 
     /**
@@ -203,9 +227,12 @@ public class BookController {
      * GET /api/books/low-stock?threshold={threshold}
      */
     @GetMapping("/low-stock")
-    public ResponseEntity<ListResponse<Book>> getBooksWithLowStock(@RequestParam(defaultValue = "3") Integer threshold) {
+    public ResponseEntity<ListResponse<BookDTO>> getBooksWithLowStock(@RequestParam(defaultValue = "3") Integer threshold) {
         List<Book> books = bookService.getBooksWithLowStock(threshold);
-        return ResponseEntity.ok(new ListResponse<>(true, "Low stock books retrieved successfully", books));
+        List<BookDTO> dtos = books.stream()
+                .map(bookMapper::toDTO)
+                .collect(Collectors.toList());
+        return ResponseEntity.ok(new ListResponse<>(true, "Low stock books retrieved successfully", dtos));
     }
 
     /**
@@ -213,9 +240,12 @@ public class BookController {
      * GET /api/books/without-categories
      */
     @GetMapping("/without-categories")
-    public ResponseEntity<ListResponse<Book>> getBooksWithoutCategories() {
+    public ResponseEntity<ListResponse<BookDTO>> getBooksWithoutCategories() {
         List<Book> books = bookService.getBooksWithoutCategories();
-        return ResponseEntity.ok(new ListResponse<>(true, "Books without categories retrieved successfully", books));
+        List<BookDTO> dtos = books.stream()
+                .map(bookMapper::toDTO)
+                .collect(Collectors.toList());
+        return ResponseEntity.ok(new ListResponse<>(true, "Books without categories retrieved successfully", dtos));
     }
 
     /**

@@ -121,6 +121,23 @@ public class User {
     @Column(nullable = false, columnDefinition = "boolean default false")
     @Builder.Default
     private Boolean publicProfile = false;
+
+    @Column(name = "reading_goal")
+    @Builder.Default
+    private Integer readingGoal = 12; // Default: 12 books/year
+
+    @Column(name = "reading_streak")
+    @Builder.Default
+    private Integer readingStreak = 0;
+
+    @Column(name = "longest_streak")
+    @Builder.Default
+    private Integer longestStreak = 0;
+
+    @Column(name = "total_books_read")
+    @Builder.Default
+
+    private Integer totalBooksRead = 0;
     /**
      * Incrémente le nombre de tentatives de connexion échouées
      */
@@ -151,4 +168,6 @@ public class User {
         this.lockedUntil = null;
         this.failedLoginAttempts = 0;
     }
+
+
 }

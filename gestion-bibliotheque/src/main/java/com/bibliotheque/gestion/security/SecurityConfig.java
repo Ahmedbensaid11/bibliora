@@ -108,6 +108,9 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.POST, "/api/books").hasRole("ADMIN")
                         .requestMatchers(HttpMethod.PUT, "/api/books/**").hasRole("ADMIN")
                         .requestMatchers(HttpMethod.DELETE, "/api/books/**").hasRole("ADMIN")
+                        .requestMatchers("/api/loans/**").hasAnyRole("LECTEUR", "ADMIN")
+                        .requestMatchers("/api/reading/**").hasAnyRole("LECTEUR", "ADMIN")
+
 
                         // Endpoints pour lecteurs et admins
                         .requestMatchers(HttpMethod.GET, "/api/books/**" ).hasAnyRole("LECTEUR", "ADMIN")
