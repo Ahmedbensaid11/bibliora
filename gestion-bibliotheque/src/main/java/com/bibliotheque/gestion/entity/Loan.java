@@ -1,5 +1,6 @@
 package com.bibliotheque.gestion.entity;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.annotations.CreationTimestamp;
@@ -28,13 +29,15 @@ public class Loan {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id", nullable = false)
+    @JsonIgnoreProperties({"hibernateLazyInitializer", "handler", "password", "roles", "resetPasswordToken", "resetPasswordTokenExpiry"})
     private User user;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "book_id", nullable = false)
+    @JsonIgnoreProperties({"hibernateLazyInitializer", "handler", "categories"})
     private Book book;
 
-    @Column(name = "borrow_date", nullable = false)
+    @Column(name = "loan_date", nullable = false)
     private LocalDate borrowDate;
 
     @Column(name = "due_date", nullable = false)
