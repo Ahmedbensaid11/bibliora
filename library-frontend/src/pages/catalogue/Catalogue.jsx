@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import {
   Container,
   Grid,
@@ -21,7 +21,6 @@ import {
   DialogContent,
   DialogActions,
   IconButton,
-  Rating,
   CircularProgress,
   Alert
 } from '@mui/material';
@@ -29,12 +28,13 @@ import {
   Search,
   ViewModule,
   ViewList,
-  Visibility,
   Close,
   MenuBook
 } from '@mui/icons-material';
 import { useTheme } from '@mui/material/styles';
+import { toast } from 'react-toastify';
 import useAuthStore from '../../store/authStore';
+import loanService from '../../api/loanService';
 
 const API_URL = 'http://localhost:8080/api';
 
@@ -51,6 +51,7 @@ const Catalogue = () => {
   const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [borrowingBookId, setBorrowingBookId] = useState(null);
 
   const itemsPerPage = 12;
 
@@ -126,14 +127,41 @@ const Catalogue = () => {
       currentPage * itemsPerPage
   );
 
-  const handleBorrow = (bookId) => {
-    console.log('Emprunter le livre:', bookId);
-    // TODO: Implement borrow logic
+  const handleBorrow = async (bookId) => {
+    if (!token) {
+      toast.warning('Veuillez vous connecter pour emprunter un livre');
+      return;
+    }
+
+    setBorrowingBookId(bookId);
+    try {
+      await loanService.borrowBook(bookId);
+      toast.success('Livre emprunté avec succès !');
+
+      // Update book's available copies locally
+      setBooks(prevBooks =>
+        prevBooks.map(book =>
+          book.id === bookId
+            ? { ...book, availableCopies: book.availableCopies - 1 }
+            : book
+        )
+      );
+
+      // Close dialog if open
+      if (selectedBook?.id === bookId) {
+        setSelectedBook(null);
+      }
+    } catch (error) {
+      console.error('Error borrowing book:', error);
+      const errorMessage = error.response?.data?.message || 'Erreur lors de l\'emprunt du livre';
+      toast.error(errorMessage);
+    } finally {
+      setBorrowingBookId(null);
+    }
   };
 
   const handleReserve = (bookId) => {
-    console.log('Réserver le livre:', bookId);
-    // TODO: Implement reserve logic
+    toast.info('La fonctionnalité de réservation sera bientôt disponible');
   };
 
   const getStatusColor = (availableCopies) => {
@@ -421,12 +449,14 @@ const Catalogue = () => {
                                     <Button
                                         variant="contained"
                                         size="small"
+                                        disabled={borrowingBookId === book.id}
                                         onClick={(e) => {
                                           e.stopPropagation();
                                           handleBorrow(book.id);
                                         }}
+                                        startIcon={borrowingBookId === book.id && <CircularProgress size={16} />}
                                     >
-                                      Emprunter
+                                      {borrowingBookId === book.id ? 'Emprunt...' : 'Emprunter'}
                                     </Button>
                                 ) : (
                                     <Button
@@ -572,8 +602,13 @@ const Catalogue = () => {
                     Fermer
                   </Button>
                   {selectedBook.availableCopies > 0 ? (
-                      <Button variant="contained" onClick={() => handleBorrow(selectedBook.id)}>
-                        Emprunter ce livre
+                      <Button
+                        variant="contained"
+                        disabled={borrowingBookId === selectedBook.id}
+                        onClick={() => handleBorrow(selectedBook.id)}
+                        startIcon={borrowingBookId === selectedBook.id && <CircularProgress size={16} />}
+                      >
+                        {borrowingBookId === selectedBook.id ? 'Emprunt en cours...' : 'Emprunter ce livre'}
                       </Button>
                   ) : (
                       <Button variant="outlined" onClick={() => handleReserve(selectedBook.id)}>

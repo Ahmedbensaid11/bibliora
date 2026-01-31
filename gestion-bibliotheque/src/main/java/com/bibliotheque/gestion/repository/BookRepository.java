@@ -97,4 +97,16 @@ public interface BookRepository extends JpaRepository<Book, Long> {
     // Find books without any categories
     @Query("SELECT b FROM Book b WHERE b.categories IS EMPTY")
     List<Book> findBooksWithoutCategories();
+
+    // Admin search with pagination
+    Page<Book> findByTitleContainingIgnoreCaseOrAuthorContainingIgnoreCaseOrIsbnContainingIgnoreCase(
+            String title, String author, String isbn, Pageable pageable);
+
+    // Find by category name
+    @Query("SELECT b FROM Book b JOIN b.categories c WHERE c.name = :categoryName")
+    Page<Book> findByCategoryName(@Param("categoryName") String categoryName, Pageable pageable);
+
+    // Find available books
+    @Query("SELECT b FROM Book b WHERE b.availableCopies > 0")
+    List<Book> findAvailableBooks();
 }

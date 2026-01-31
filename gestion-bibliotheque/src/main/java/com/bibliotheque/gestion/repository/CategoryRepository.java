@@ -93,4 +93,20 @@ public interface CategoryRepository extends JpaRepository<Category, Long> {
      */
     @Query("SELECT c FROM Category c WHERE c.id = :categoryId AND c.active = true")
     Optional<Category> findCategoryWithPath(@Param("categoryId") Long categoryId);
+
+    /**
+     * Check if category name exists
+     */
+    boolean existsByName(String name);
+
+    /**
+     * Find category by name excluding a specific id
+     */
+    @Query("SELECT c FROM Category c WHERE c.name = :name AND c.id != :id")
+    Category findByNameAndIdNot(@Param("name") String name, @Param("id") Long id);
+
+    /**
+     * Check if category has subcategories
+     */
+    boolean existsByParentId(Long parentId);
 }

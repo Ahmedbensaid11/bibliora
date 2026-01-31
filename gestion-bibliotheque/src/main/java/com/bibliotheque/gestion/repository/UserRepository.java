@@ -45,4 +45,14 @@ public interface UserRepository extends JpaRepository<User, Long> {
      * Trouve un utilisateur par son token de réinitialisation de mot de passe
      */
     Optional<User> findByResetPasswordToken(String token);
+
+    /**
+     * Check if identity card exists
+     */
+    Boolean existsByIdentityCard(String identityCard);
+
+    /**
+     * Find all enabled users
+     */
+    java.util.List<User> findByEnabledTrue();
 }

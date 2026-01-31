@@ -142,7 +142,7 @@ const Register = () => {
         height: '100%',
         width: '100vw',
         display: 'flex',
-        background: 'linear-gradient(135deg, #34495E 0%, #2C3E50 50%, #1A252F 100%)',
+        background: 'linear-gradient(135deg, #92400e 0%, #78350f 50%, #451a03 100%)',
         position: 'relative',
         overflow: 'hidden',
         margin: 0,
@@ -178,7 +178,7 @@ const Register = () => {
               width: 300 + i * 100,
               height: 300 + i * 100,
               borderRadius: '50%',
-              background: `radial-gradient(circle, rgba(255, 255, 255, 0.1) 0%, rgba(255, 255, 255, 0.02) 100%)`,
+              background: `radial-gradient(circle, rgba(251, 191, 36, 0.15) 0%, rgba(251, 191, 36, 0.02) 100%)`,
               top: `${12 + i * 12}%`,
               right: `${3 + i * 15}%`,
               filter: 'blur(50px)',
@@ -269,7 +269,7 @@ const Register = () => {
                       <Box sx={{ display: 'flex', alignItems: 'center', mb: 3 }}>
                         <Box
                           sx={{
-                            background: 'rgba(255, 255, 255, 0.1)',
+                            background: 'rgba(251, 191, 36, 0.2)',
                             backdropFilter: 'blur(10px)',
                             borderRadius: 3,
                             p: { md: 1.5, lg: 2 },
@@ -277,6 +277,7 @@ const Register = () => {
                             display: 'flex',
                             alignItems: 'center',
                             justifyContent: 'center',
+                            border: '1px solid rgba(251, 191, 36, 0.3)',
                           }}
                         >
                           {benefit.icon}
@@ -347,11 +348,11 @@ const Register = () => {
                 elevation={24}
                 sx={{
                   p: { xs: 3, sm: 4, md: 4, lg: 5 },
-                  borderRadius: { xs: 3, md: 4 },
-                  background: 'rgba(255, 255, 255, 0.98)',
+                  borderRadius: { xs: 2, md: 2 },
+                  background: '#fffcf5',
                   backdropFilter: 'blur(20px)',
-                  border: '1px solid rgba(255, 255, 255, 0.3)',
-                  boxShadow: '0 8px 32px rgba(0, 0, 0, 0.3)',
+                  borderTop: '4px solid #78350f',
+                  boxShadow: '0 8px 32px rgba(120, 53, 15, 0.25)',
                 }}
               >
                 <Box sx={{ textAlign: 'center', mb: 4 }}>
@@ -368,7 +369,7 @@ const Register = () => {
                         width: { xs: 100, sm: 150, md: 200 },
                         height: { xs: 100, sm: 150, md: 200 },
                         mb: 3,
-                        filter: 'drop-shadow(0 4px 12px rgba(44, 62, 80, 0.3))',
+                        filter: 'drop-shadow(0 4px 12px rgba(120, 53, 15, 0.3))',
                       }}
                     />
                   </motion.div>
@@ -414,7 +415,7 @@ const Register = () => {
                             transition: 'all 0.3s ease',
                             '&:hover': {
                               transform: 'translateY(-2px)',
-                              boxShadow: '0 4px 12px rgba(44, 62, 80, 0.1)',
+                              boxShadow: '0 4px 12px rgba(120, 53, 15, 0.1)',
                             },
                           },
                         }}
@@ -436,7 +437,7 @@ const Register = () => {
                             transition: 'all 0.3s ease',
                             '&:hover': {
                               transform: 'translateY(-2px)',
-                              boxShadow: '0 4px 12px rgba(44, 62, 80, 0.1)',
+                              boxShadow: '0 4px 12px rgba(120, 53, 15, 0.1)',
                             },
                           },
                         }}
@@ -456,7 +457,7 @@ const Register = () => {
                             transition: 'all 0.3s ease',
                             '&:hover': {
                               transform: 'translateY(-2px)',
-                              boxShadow: '0 4px 12px rgba(44, 62, 80, 0.1)',
+                              boxShadow: '0 4px 12px rgba(120, 53, 15, 0.1)',
                             },
                           },
                         }}
@@ -486,7 +487,7 @@ const Register = () => {
                             transition: 'all 0.3s ease',
                             '&:hover': {
                               transform: 'translateY(-2px)',
-                              boxShadow: '0 4px 12px rgba(44, 62, 80, 0.1)',
+                              boxShadow: '0 4px 12px rgba(120, 53, 15, 0.1)',
                             },
                           },
                         }}
@@ -513,7 +514,7 @@ const Register = () => {
                             transition: 'all 0.3s ease',
                             '&:hover': {
                               transform: 'translateY(-2px)',
-                              boxShadow: '0 4px 12px rgba(44, 62, 80, 0.1)',
+                              boxShadow: '0 4px 12px rgba(120, 53, 15, 0.1)',
                             },
                           },
                         }}
@@ -538,7 +539,7 @@ const Register = () => {
                             transition: 'all 0.3s ease',
                             '&:hover': {
                               transform: 'translateY(-2px)',
-                              boxShadow: '0 4px 12px rgba(44, 62, 80, 0.1)',
+                              boxShadow: '0 4px 12px rgba(120, 53, 15, 0.1)',
                             },
                           },
                         }}
@@ -578,7 +579,7 @@ const Register = () => {
                             transition: 'all 0.3s ease',
                             '&:hover': {
                               transform: 'translateY(-2px)',
-                              boxShadow: '0 4px 12px rgba(44, 62, 80, 0.1)',
+                              boxShadow: '0 4px 12px rgba(120, 53, 15, 0.1)',
                             },
                           },
                         }}
@@ -639,7 +640,7 @@ const Register = () => {
                             transition: 'all 0.3s ease',
                             '&:hover': {
                               transform: 'translateY(-2px)',
-                              boxShadow: '0 4px 12px rgba(44, 62, 80, 0.1)',
+                              boxShadow: '0 4px 12px rgba(120, 53, 15, 0.1)',
                             },
                           },
                         }}
@@ -660,12 +661,13 @@ const Register = () => {
                       mb: 2,
                       fontSize: { xs: '0.95rem', md: '1rem' },
                       fontWeight: 600,
-                      background: 'linear-gradient(135deg, #34495E 0%, #2C3E50 100%)',
-                      boxShadow: '0 4px 14px rgba(44, 62, 80, 0.4)',
+                      fontFamily: 'Georgia, serif',
+                      background: '#78350f',
+                      boxShadow: '0 4px 14px rgba(120, 53, 15, 0.4)',
                       transition: 'all 0.3s ease',
                       '&:hover': {
-                        background: 'linear-gradient(135deg, #2C3E50 0%, #1A252F 100%)',
-                        boxShadow: '0 6px 20px rgba(44, 62, 80, 0.6)',
+                        background: '#92400e',
+                        boxShadow: '0 6px 20px rgba(120, 53, 15, 0.6)',
                         transform: 'translateY(-2px)',
                       },
                     }}
@@ -685,17 +687,17 @@ const Register = () => {
                       <Link
                         to="/login"
                         style={{
-                          color: '#2C3E50',
+                          color: '#78350f',
                           textDecoration: 'none',
                           fontWeight: 600,
                           transition: 'all 0.3s ease',
                         }}
                         onMouseEnter={(e) => {
-                          e.target.style.color = '#1A252F';
+                          e.target.style.color = '#b45309';
                           e.target.style.textDecoration = 'underline';
                         }}
                         onMouseLeave={(e) => {
-                          e.target.style.color = '#2C3E50';
+                          e.target.style.color = '#78350f';
                           e.target.style.textDecoration = 'none';
                         }}
                       >
@@ -708,14 +710,14 @@ const Register = () => {
 
               {/* Footer */}
               <Box sx={{ textAlign: 'center', mt: 3 }}>
-                <Typography 
-                  variant="body2" 
-                  sx={{ 
-                    color: 'rgba(255, 255, 255, 0.7)',
+                <Typography
+                  variant="body2"
+                  sx={{
+                    color: 'rgba(254, 243, 199, 0.8)',
                     fontSize: { xs: '0.75rem', md: '0.875rem' },
                   }}
                 >
-                  © 2025 Library Management System. Tous droits réservés.
+                  © 2025 BiblioRA. Savoir & Tradition.
                 </Typography>
               </Box>
             </motion.div>

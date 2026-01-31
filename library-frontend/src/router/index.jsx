@@ -11,6 +11,9 @@ import Historique from '../pages/historique/Historique';
 import Home from '../pages/home/home';
 import About from '../pages/about/About';
 import Contact from '../pages/contact/Contact';
+import AdminUsers from '../pages/admin/AdminUsers';
+import AdminBooks from '../pages/admin/AdminBooks';
+import AdminLoans from '../pages/admin/AdminLoans';
 
 const ProtectedRoute = ({ children }) => {
   const { isAuthenticated } = useAuthStore();
@@ -91,6 +94,18 @@ const router = createBrowserRouter([
       {
         path: '/profile',
         element: <Profile />,
+      },
+      {
+        path: '/admin/users',
+        element: <AdminUsers />,
+      },
+      {
+        path: '/admin/books',
+        element: <AdminBooks />,
+      },
+      {
+        path: '/admin/loans',
+        element: <AdminLoans />,
       },
     ],
   },

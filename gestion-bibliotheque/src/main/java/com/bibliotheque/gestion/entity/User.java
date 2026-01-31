@@ -48,6 +48,45 @@ public class User {
     @Column(length = 20)
     private String phoneNumber;
 
+    // Profile fields
+    @Column(length = 500)
+    private String photoUrl;
+
+    @Column(length = 50)
+    private String identityCard;
+
+    @Column(length = 10)
+    @Builder.Default
+    private String language = "fr";
+
+    @Column(length = 20)
+    @Builder.Default
+    private String theme = "light";
+
+    @Column(columnDefinition = "boolean default true")
+    @Builder.Default
+    private Boolean emailNotifications = true;
+
+    @Column(columnDefinition = "boolean default false")
+    @Builder.Default
+    private Boolean publicProfile = false;
+
+    @Column(name = "reading_goal")
+    @Builder.Default
+    private Integer readingGoal = 12;
+
+    @Column(name = "reading_streak")
+    @Builder.Default
+    private Integer readingStreak = 0;
+
+    @Column(name = "longest_streak")
+    @Builder.Default
+    private Integer longestStreak = 0;
+
+    @Column(name = "total_books_read")
+    @Builder.Default
+    private Integer totalBooksRead = 0;
+
     @ManyToMany(fetch = FetchType.EAGER)
     @JoinTable(
             name = "user_roles",

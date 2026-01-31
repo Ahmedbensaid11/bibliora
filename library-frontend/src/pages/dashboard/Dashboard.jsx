@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import {
   Container,
   Grid,
@@ -22,9 +22,7 @@ import {
   TableHead,
   TableRow,
   IconButton,
-  Badge,
-  Avatar,
-  AvatarGroup
+  Skeleton
 } from '@mui/material';
 import {
   LibraryBooks,
@@ -34,80 +32,140 @@ import {
   TrendingUp,
   Schedule,
   CheckCircle,
-  Error,
-  Notifications,
   Refresh,
   Visibility,
-  MoreVert,
   CalendarToday,
   LocalLibrary,
   BarChart,
   RecentActors,
-  CloudUpload,  // Add this
-
+  CloudUpload,
 } from '@mui/icons-material';
 import { useTheme } from '@mui/material/styles';
+import { useNavigate } from 'react-router-dom';
 import useAuthStore from '../../store/authStore';
+import loanService from '../../api/loanService';
+import adminService from '../../api/adminService';
 
 const Dashboard = () => {
   const theme = useTheme();
+  const navigate = useNavigate();
   const { user } = useAuthStore();
   const [stats, setStats] = useState({});
   const [recentActivity, setRecentActivity] = useState([]);
   const [isAdmin, setIsAdmin] = useState(false);
   const [importing, setImporting] = useState(false);
   const [importResult, setImportResult] = useState(null);
+  const [loading, setLoading] = useState(true);
+
   // Vérifier le rôle de l'utilisateur
   useEffect(() => {
     const admin = user?.roles?.includes('ROLE_ADMIN') || user?.roles?.includes('ROLE_EMPLOYEE');
     setIsAdmin(admin);
-    
+
     // Charger les données en fonction du rôle
     loadDashboardData(admin);
   }, [user]);
 
-  const loadDashboardData = (adminRole) => {
-    // Données simulées pour le dashboard
-    if (adminRole) {
-      // Statistiques administrateur
-      setStats({
-        totalBooks: 1254,
-        totalUsers: 342,
-        activeLoans: 89,
-        overdueLoans: 12,
-        newRegistrations: 8,
-        availableBooks: 1156,
-        popularGenres: ['Roman', 'Science-Fiction', 'Histoire'],
-        monthlyGrowth: 12.5
-      });
+  const loadDashboardData = async (adminRole) => {
+    setLoading(true);
+    try {
+      if (adminRole) {
+        // Fetch admin stats from new admin API
+        const [dashboardStatsRes, recentActivityRes] = await Promise.all([
+          adminService.getDashboardStats(),
+          adminService.getRecentActivity(10)
+        ]);
 
-      // Activité récente (admin)
-      setRecentActivity([
-        { id: 1, type: 'loan', user: 'Marie Dubois', book: 'L\'Étranger', time: '2 min', status: 'completed' },
-        { id: 2, type: 'return', user: 'Jean Martin', book: '1984', time: '15 min', status: 'completed' },
-        { id: 3, type: 'reservation', user: 'Sophie Laurent', book: 'Le Petit Prince', time: '1 h', status: 'pending' },
-        { id: 4, type: 'overdue', user: 'Pierre Moreau', book: 'Les Misérables', time: '2 h', status: 'warning' },
-        { id: 5, type: 'registration', user: 'Nouvel utilisateur', book: null, time: '3 h', status: 'info' }
-      ]);
-    } else {
-      // Statistiques lecteur
-      setStats({
-        currentLoans: 3,
-        readBooks: 45,
-        overdueBooks: 1,
-        reservedBooks: 2,
-        favoriteGenres: ['Roman', 'Science-Fiction', 'Policier'],
-        readingGoal: 75
-      });
+        const dashboardStats = dashboardStatsRes.data || {};
+        const recentLoans = recentActivityRes.data || [];
 
-      // Activité récente (lecteur)
-      setRecentActivity([
-        { id: 1, type: 'loan', book: 'L\'Étranger', date: '15 Jan', dueDate: '15 Fév', status: 'active' },
-        { id: 2, type: 'return', book: '1984', date: '10 Jan', dueDate: null, status: 'completed' },
-        { id: 3, type: 'reservation', book: 'Dune', date: '8 Jan', dueDate: null, status: 'waiting' },
-        { id: 4, type: 'overdue', book: 'Les Misérables', date: '20 Déc', dueDate: '10 Jan', status: 'overdue' }
-      ]);
+        setStats({
+          totalBooks: dashboardStats.totalBooks || 0,
+          totalUsers: dashboardStats.totalUsers || 0,
+          activeLoans: dashboardStats.activeLoans || 0,
+          overdueLoans: dashboardStats.overdueLoans || 0,
+          newRegistrations: dashboardStats.newRegistrations || 0,
+          availableBooks: dashboardStats.availableBooks || 0,
+          popularGenres: dashboardStats.popularGenres || [],
+          monthlyGrowth: dashboardStats.monthlyGrowth || 0,
+          returnedLoans: dashboardStats.returnedLoans || 0,
+          totalLateFees: dashboardStats.totalFines || 0,
+          systemHealth: dashboardStats.systemHealth || 'good',
+          lowStockBooks: dashboardStats.lowStockBooks || 0,
+          dueSoonLoans: dashboardStats.dueSoonLoans || 0
+        });
+
+        // Transform recent activity to display format
+        const activity = recentLoans.slice(0, 5).map((loan) => ({
+          id: loan.id,
+          type: loan.statusCode === 'OVERDUE' ? 'overdue' : loan.statusCode === 'RETURNED' ? 'return' : 'loan',
+          user: loan.user || 'Utilisateur',
+          book: loan.book || 'Livre',
+          time: loan.loanDate ? formatDateShort(loan.loanDate) : '',
+          status: loan.statusCode === 'OVERDUE' ? 'warning' : loan.statusCode === 'RETURNED' ? 'success' : 'active'
+        }));
+        setRecentActivity(activity);
+      } else {
+        // Fetch reader stats from API
+        const [statsRes, activeLoansRes, historyRes, overdueRes] = await Promise.all([
+          loanService.getMyLoanStats(),
+          loanService.getMyActiveLoans(),
+          loanService.getMyLoanHistory(),
+          loanService.getMyOverdueLoans()
+        ]);
+
+        const loanStats = statsRes.data || {};
+        const activeLoans = activeLoansRes.data || [];
+        const historyLoans = historyRes.data || [];
+        const overdueLoans = overdueRes.data || [];
+
+        setStats({
+          currentLoans: loanStats.activeLoans || activeLoans.length,
+          readBooks: loanStats.totalLoans || historyLoans.length,
+          overdueBooks: loanStats.overdueLoans || overdueLoans.length,
+          reservedBooks: 0,
+          favoriteGenres: ['Roman', 'Science-Fiction', 'Policier'],
+          readingGoal: Math.min(100, Math.round((historyLoans.length / 50) * 100)),
+          totalLateFees: loanStats.totalLateFees || 0,
+          maxLoansAllowed: loanStats.maxLoansAllowed || 5
+        });
+
+        // Transform loans to activity format
+        const allLoans = [...activeLoans, ...historyLoans.slice(0, 3)];
+        const activity = allLoans.slice(0, 5).map((loan) => ({
+          id: loan.id,
+          type: loan.status === 'RETURNED' ? 'return' : loan.status === 'OVERDUE' ? 'overdue' : 'loan',
+          book: loan.book?.title || 'Livre',
+          date: formatDateShort(loan.borrowDate),
+          dueDate: loan.status !== 'RETURNED' ? formatDateShort(loan.dueDate) : null,
+          status: loan.status === 'RETURNED' ? 'completed' : loan.status === 'OVERDUE' ? 'overdue' : 'active'
+        }));
+        setRecentActivity(activity);
+      }
+    } catch (error) {
+      console.error('Error loading dashboard data:', error);
+      // Set default values on error
+      if (adminRole) {
+        setStats({ totalBooks: 0, activeLoans: 0, overdueLoans: 0, availableBooks: 0 });
+      } else {
+        setStats({ currentLoans: 0, readBooks: 0, overdueBooks: 0, reservedBooks: 0 });
+      }
+      setRecentActivity([]);
+    } finally {
+      setLoading(false);
     }
+  };
+
+  const getDaysOverdue = (dueDate) => {
+    const due = new Date(dueDate);
+    const today = new Date();
+    return Math.ceil((today - due) / (1000 * 60 * 60 * 24));
+  };
+
+  const formatDateShort = (dateString) => {
+    if (!dateString) return '';
+    const date = new Date(dateString);
+    return date.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' });
   };
 // Fonction pour importer CSV
   const handleCsvImport = async (event) => {
@@ -334,7 +392,7 @@ const Dashboard = () => {
                         </TableCell>
                         <TableCell>
                           <Typography variant="body2" color="text.secondary">
-                            Il y a {activity.time}
+                            {activity.time}
                           </Typography>
                         </TableCell>
                         <TableCell align="right">
@@ -358,7 +416,7 @@ const Dashboard = () => {
               </Typography>
               <Grid container spacing={2}>
                 {stats.popularGenres?.map((genre, index) => (
-                  <Grid item xs={12} sm={6} md={4} key={genre}>
+                  <Grid item xs={12} sm={6} md={4} key={genre.name || genre}>
                     <Paper
                       sx={{
                         p: 2,
@@ -374,10 +432,10 @@ const Dashboard = () => {
                       }}
                     >
                       <Typography variant="h6" fontWeight="600">
-                        {genre}
+                        {genre.name || genre}
                       </Typography>
                       <Typography variant="body2" sx={{ opacity: 0.9 }}>
-                        {(Math.random() * 50 + 50).toFixed(0)} emprunts
+                        {genre.count || 0} livres
                       </Typography>
                     </Paper>
                   </Grid>
@@ -416,11 +474,11 @@ const Dashboard = () => {
               )}
 
               <List>
-                <ListItem button sx={{ borderRadius: 2, mb: 1 }}>
+                <ListItem button sx={{ borderRadius: 2, mb: 1 }} onClick={() => navigate('/admin/books')}>
                   <ListItemIcon>
                     <LibraryBooks color="primary" />
                   </ListItemIcon>
-                  <ListItemText primary="Ajouter un livre" secondary="Nouvelle acquisition" />
+                  <ListItemText primary="Gérer les livres" secondary="Ajouter, modifier, supprimer" />
                 </ListItem>
 
                 {/* Importer CSV Button */}
@@ -461,23 +519,23 @@ const Dashboard = () => {
                   />
                 </ListItem>
 
-                <ListItem button sx={{ borderRadius: 2, mb: 1 }}>
+                <ListItem button sx={{ borderRadius: 2, mb: 1 }} onClick={() => navigate('/admin/users')}>
                   <ListItemIcon>
                     <People color="primary" />
                   </ListItemIcon>
-                  <ListItemText primary="Gérer les utilisateurs" secondary="Inscriptions en attente" />
+                  <ListItemText primary="Gérer les utilisateurs" secondary="Créer, modifier, supprimer" />
                 </ListItem>
-                <ListItem button sx={{ borderRadius: 2, mb: 1 }}>
+                <ListItem button sx={{ borderRadius: 2, mb: 1 }} onClick={() => navigate('/admin/loans')}>
                   <ListItemIcon>
                     <Bookmark color="primary" />
                   </ListItemIcon>
-                  <ListItemText primary="Voir les retards" secondary={`${stats.overdueLoans} emprunts`} />
+                  <ListItemText primary="Gérer les emprunts" secondary={`${stats.overdueLoans} en retard`} />
                 </ListItem>
-                <ListItem button sx={{ borderRadius: 2 }}>
+                <ListItem button sx={{ borderRadius: 2 }} onClick={() => navigate('/historique')}>
                   <ListItemIcon>
                     <BarChart color="primary" />
                   </ListItemIcon>
-                  <ListItemText primary="Générer rapport" secondary="Export mensuel" />
+                  <ListItemText primary="Historique" secondary="Voir l'historique" />
                 </ListItem>
               </List>
             </CardContent>
@@ -829,6 +887,23 @@ const Dashboard = () => {
     };
     return colors[status] || 'default';
   };
+
+  if (loading) {
+    return (
+      <Container maxWidth="xl" sx={{ py: 4, mt: 8 }}>
+        <Skeleton variant="text" width={400} height={60} sx={{ mb: 2 }} />
+        <Skeleton variant="text" width={300} height={30} sx={{ mb: 4 }} />
+        <Grid container spacing={3} sx={{ mb: 4 }}>
+          {[1, 2, 3, 4].map((i) => (
+            <Grid item xs={12} sm={6} md={3} key={i}>
+              <Skeleton variant="rectangular" height={150} sx={{ borderRadius: 2 }} />
+            </Grid>
+          ))}
+        </Grid>
+        <Skeleton variant="rectangular" height={400} sx={{ borderRadius: 2 }} />
+      </Container>
+    );
+  }
 
   return (
     <Container maxWidth="xl" sx={{ py: 4, mt: 8 }}>
