@@ -44,6 +44,7 @@ import { useTheme } from '@mui/material/styles';
 import { useNavigate } from 'react-router-dom';
 import useAuthStore from '../../store/authStore';
 import loanService from '../../api/loanService';
+import adminService from '../../api/adminService';
 
 const Dashboard = () => {
   const theme = useTheme();
@@ -69,40 +70,39 @@ const Dashboard = () => {
     setLoading(true);
     try {
       if (adminRole) {
-        // Fetch admin stats from API
-        const [globalStatsRes, booksRes, overdueRes] = await Promise.all([
-          loanService.getGlobalStats(),
-          fetch('http://localhost:8080/api/books', {
-            headers: { 'Authorization': `Bearer ${localStorage.getItem('token')}` }
-          }).then(r => r.json()),
-          loanService.getAllOverdueLoans()
+        // Fetch admin stats from new admin API
+        const [dashboardStatsRes, recentActivityRes] = await Promise.all([
+          adminService.getDashboardStats(),
+          adminService.getRecentActivity(10)
         ]);
 
-        const globalStats = globalStatsRes.data || {};
-        const books = booksRes.data || [];
-        const overdueLoans = overdueRes.data || [];
+        const dashboardStats = dashboardStatsRes.data || {};
+        const recentLoans = recentActivityRes.data || [];
 
         setStats({
-          totalBooks: books.length,
-          totalUsers: 0, // Would need a users API
-          activeLoans: globalStats.activeLoans || 0,
-          overdueLoans: globalStats.overdueLoans || 0,
-          newRegistrations: 0,
-          availableBooks: books.filter(b => b.availableCopies > 0).length,
-          popularGenres: ['Roman', 'Science-Fiction', 'Histoire'],
-          monthlyGrowth: 0,
-          returnedLoans: globalStats.returnedLoans || 0,
-          totalLateFees: globalStats.totalLateFees || 0
+          totalBooks: dashboardStats.totalBooks || 0,
+          totalUsers: dashboardStats.totalUsers || 0,
+          activeLoans: dashboardStats.activeLoans || 0,
+          overdueLoans: dashboardStats.overdueLoans || 0,
+          newRegistrations: dashboardStats.newRegistrations || 0,
+          availableBooks: dashboardStats.availableBooks || 0,
+          popularGenres: dashboardStats.popularGenres || [],
+          monthlyGrowth: dashboardStats.monthlyGrowth || 0,
+          returnedLoans: dashboardStats.returnedLoans || 0,
+          totalLateFees: dashboardStats.totalFines || 0,
+          systemHealth: dashboardStats.systemHealth || 'good',
+          lowStockBooks: dashboardStats.lowStockBooks || 0,
+          dueSoonLoans: dashboardStats.dueSoonLoans || 0
         });
 
-        // Transform overdue loans to activity format
-        const activity = overdueLoans.slice(0, 5).map((loan, index) => ({
+        // Transform recent activity to display format
+        const activity = recentLoans.slice(0, 5).map((loan) => ({
           id: loan.id,
-          type: 'overdue',
-          user: loan.user?.username || 'Utilisateur',
-          book: loan.book?.title || 'Livre',
-          time: `${Math.abs(getDaysOverdue(loan.dueDate))} jours`,
-          status: 'warning'
+          type: loan.statusCode === 'OVERDUE' ? 'overdue' : loan.statusCode === 'RETURNED' ? 'return' : 'loan',
+          user: loan.user || 'Utilisateur',
+          book: loan.book || 'Livre',
+          time: loan.loanDate ? formatDateShort(loan.loanDate) : '',
+          status: loan.statusCode === 'OVERDUE' ? 'warning' : loan.statusCode === 'RETURNED' ? 'success' : 'active'
         }));
         setRecentActivity(activity);
       } else {
@@ -392,7 +392,7 @@ const Dashboard = () => {
                         </TableCell>
                         <TableCell>
                           <Typography variant="body2" color="text.secondary">
-                            Il y a {activity.time}
+                            {activity.time}
                           </Typography>
                         </TableCell>
                         <TableCell align="right">
@@ -416,7 +416,7 @@ const Dashboard = () => {
               </Typography>
               <Grid container spacing={2}>
                 {stats.popularGenres?.map((genre, index) => (
-                  <Grid item xs={12} sm={6} md={4} key={genre}>
+                  <Grid item xs={12} sm={6} md={4} key={genre.name || genre}>
                     <Paper
                       sx={{
                         p: 2,
@@ -432,10 +432,10 @@ const Dashboard = () => {
                       }}
                     >
                       <Typography variant="h6" fontWeight="600">
-                        {genre}
+                        {genre.name || genre}
                       </Typography>
                       <Typography variant="body2" sx={{ opacity: 0.9 }}>
-                        {(Math.random() * 50 + 50).toFixed(0)} emprunts
+                        {genre.count || 0} livres
                       </Typography>
                     </Paper>
                   </Grid>
@@ -474,11 +474,11 @@ const Dashboard = () => {
               )}
 
               <List>
-                <ListItem button sx={{ borderRadius: 2, mb: 1 }}>
+                <ListItem button sx={{ borderRadius: 2, mb: 1 }} onClick={() => navigate('/admin/books')}>
                   <ListItemIcon>
                     <LibraryBooks color="primary" />
                   </ListItemIcon>
-                  <ListItemText primary="Ajouter un livre" secondary="Nouvelle acquisition" />
+                  <ListItemText primary="Gérer les livres" secondary="Ajouter, modifier, supprimer" />
                 </ListItem>
 
                 {/* Importer CSV Button */}
@@ -519,23 +519,23 @@ const Dashboard = () => {
                   />
                 </ListItem>
 
-                <ListItem button sx={{ borderRadius: 2, mb: 1 }}>
+                <ListItem button sx={{ borderRadius: 2, mb: 1 }} onClick={() => navigate('/admin/users')}>
                   <ListItemIcon>
                     <People color="primary" />
                   </ListItemIcon>
-                  <ListItemText primary="Gérer les utilisateurs" secondary="Inscriptions en attente" />
+                  <ListItemText primary="Gérer les utilisateurs" secondary="Créer, modifier, supprimer" />
                 </ListItem>
-                <ListItem button sx={{ borderRadius: 2, mb: 1 }}>
+                <ListItem button sx={{ borderRadius: 2, mb: 1 }} onClick={() => navigate('/admin/loans')}>
                   <ListItemIcon>
                     <Bookmark color="primary" />
                   </ListItemIcon>
-                  <ListItemText primary="Voir les retards" secondary={`${stats.overdueLoans} emprunts`} />
+                  <ListItemText primary="Gérer les emprunts" secondary={`${stats.overdueLoans} en retard`} />
                 </ListItem>
-                <ListItem button sx={{ borderRadius: 2 }}>
+                <ListItem button sx={{ borderRadius: 2 }} onClick={() => navigate('/historique')}>
                   <ListItemIcon>
                     <BarChart color="primary" />
                   </ListItemIcon>
-                  <ListItemText primary="Générer rapport" secondary="Export mensuel" />
+                  <ListItemText primary="Historique" secondary="Voir l'historique" />
                 </ListItem>
               </List>
             </CardContent>

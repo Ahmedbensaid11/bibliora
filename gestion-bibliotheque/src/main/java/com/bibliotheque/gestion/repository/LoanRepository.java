@@ -127,4 +127,24 @@ public interface LoanRepository extends JpaRepository<Loan, Long> {
 
     @Query("SELECT COUNT(l) FROM Loan l WHERE l.user.id = :userId AND l.status IN ('ACTIVE', 'OVERDUE')")
     int countCurrentLoansForUser(@Param("userId") Long userId);
+
+    // ============ User profile statistics ============
+
+    Long countByUserIdAndStatusNot(Long userId, LoanStatus status);
+
+    Long countByUserIdAndStatus(Long userId, LoanStatus status);
+
+    List<Loan> findByUserIdAndStatusAndDueDateBefore(Long userId, LoanStatus status, LocalDate date);
+
+    // Admin search loans
+    @Query("SELECT l FROM Loan l WHERE " +
+           "LOWER(l.user.username) LIKE LOWER(CONCAT('%', :search, '%')) OR " +
+           "LOWER(l.user.firstName) LIKE LOWER(CONCAT('%', :search, '%')) OR " +
+           "LOWER(l.user.lastName) LIKE LOWER(CONCAT('%', :search, '%')) OR " +
+           "LOWER(l.book.title) LIKE LOWER(CONCAT('%', :search, '%')) OR " +
+           "LOWER(l.book.author) LIKE LOWER(CONCAT('%', :search, '%'))")
+    Page<Loan> searchLoans(@Param("search") String search, Pageable pageable);
+
+    // Find by book ID with pagination
+    Page<Loan> findByBookId(Long bookId, Pageable pageable);
 }

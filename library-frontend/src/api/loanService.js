@@ -34,6 +34,15 @@ const loanService = {
   },
 
   /**
+   * Récupérer tous mes emprunts
+   * @returns {Promise} Liste de tous mes emprunts
+   */
+  getMyLoans: async () => {
+    const response = await axiosInstance.get('/loans/my-loans');
+    return response.data;
+  },
+
+  /**
    * Récupérer mes emprunts actifs
    * @returns {Promise} Liste des emprunts en cours
    */

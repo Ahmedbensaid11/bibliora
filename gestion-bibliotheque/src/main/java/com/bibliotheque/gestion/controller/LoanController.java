@@ -97,6 +97,19 @@ public class LoanController {
     }
 
     /**
+     * Tous mes emprunts
+     * GET /api/loans/my-loans
+     */
+    @GetMapping("/my-loans")
+    @PreAuthorize("isAuthenticated()")
+    @Operation(summary = "Tous mes emprunts", description = "Récupère tous les emprunts de l'utilisateur connecté")
+    public ResponseEntity<ListResponse<Loan>> getMyLoans() {
+        Long userId = getCurrentUserId();
+        List<Loan> loans = loanService.getAllLoansForUser(userId);
+        return ResponseEntity.ok(new ListResponse<>(true, "Emprunts récupérés avec succès", loans));
+    }
+
+    /**
      * Mes emprunts en cours
      * GET /api/loans/me
      */

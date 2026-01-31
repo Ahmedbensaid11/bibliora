@@ -253,6 +253,14 @@ public class LoanService {
     }
 
     /**
+     * Get all loans for a user (active + history)
+     */
+    @Transactional(readOnly = true)
+    public List<Loan> getAllLoansForUser(Long userId) {
+        return loanRepository.findByUserId(userId);
+    }
+
+    /**
      * Get loan history for a user
      */
     @Transactional(readOnly = true)

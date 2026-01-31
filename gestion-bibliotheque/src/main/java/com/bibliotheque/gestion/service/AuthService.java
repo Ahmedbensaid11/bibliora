@@ -258,7 +258,7 @@ public class AuthService {
                 .orElseThrow(() -> new ResourceNotFoundException("Utilisateur non trouvé"));
 
         // Vérifier l'ancien mot de passe
-        if (!passwordEncoder.matches(request.getOldPassword(), user.getPassword())) {
+        if (!passwordEncoder.matches(request.getCurrentPassword(), user.getPassword())) {
             throw new BadRequestException("L'ancien mot de passe est incorrect");
         }
 

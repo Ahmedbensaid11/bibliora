@@ -12,6 +12,9 @@ import java.util.List;
 public class ListResponse<T> extends ApiResponse {
     private List<T> data;
     private int totalElements;
+    private int currentPage;
+    private int pageSize;
+    private int totalPages;
 
     public ListResponse(Boolean success, String message, List<T> data) {
         super(success, message);
