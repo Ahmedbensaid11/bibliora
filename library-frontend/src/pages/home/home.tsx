@@ -10,10 +10,17 @@ import {
   CardContent,
   CardMedia,
   CircularProgress,
-  Chip
+  Chip,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  IconButton
 } from '@mui/material';
-import { LibraryBooks, ArrowForward, AutoStories, MenuBook } from '@mui/icons-material';
+import { LibraryBooks, ArrowForward, AutoStories, MenuBook, Close } from '@mui/icons-material';
+import { toast } from 'react-toastify';
 import useAuthStore from '../../store/authStore';
+import loanService from '../../api/loanService';
 
 const API_URL = 'http://localhost:8080/api';
 
@@ -24,18 +31,28 @@ interface Book {
   coverUrl?: string;
   availableCopies: number;
   totalCopies: number;
+  isbn?: string;
+  publisher?: string;
+  publicationYear?: number;
+  genre?: string;
+  language?: string;
+  numberOfPages?: number;
+  summary?: string;
+  categories?: { id: number; name: string }[];
 }
 
 const Home = () => {
   const { token } = useAuthStore();
   const [books, setBooks] = useState<Book[]>([]);
   const [loading, setLoading] = useState(true);
+  const [selectedBook, setSelectedBook] = useState<Book | null>(null);
+  const [borrowingBookId, setBorrowingBookId] = useState<number | null>(null);
 
   // Fetch featured books
   useEffect(() => {
     const fetchBooks = async () => {
       try {
-        const headers = {
+        const headers: HeadersInit = {
           'Content-Type': 'application/json',
           ...(token && { 'Authorization': `Bearer ${token}` })
         };
@@ -56,6 +73,43 @@ const Home = () => {
 
     fetchBooks();
   }, [token]);
+
+  const handleBorrow = async (bookId: number) => {
+    if (!token) {
+      toast.warning('Veuillez vous connecter pour emprunter un livre');
+      return;
+    }
+
+    setBorrowingBookId(bookId);
+    try {
+      await loanService.borrowBook(bookId);
+      toast.success('Livre emprunté avec succès !');
+
+      // Update book's available copies locally
+      setBooks(prevBooks =>
+        prevBooks.map(book =>
+          book.id === bookId
+            ? { ...book, availableCopies: book.availableCopies - 1 }
+            : book
+        )
+      );
+
+      // Update selected book if open
+      if (selectedBook?.id === bookId) {
+        setSelectedBook(prev => prev ? { ...prev, availableCopies: prev.availableCopies - 1 } : null);
+      }
+    } catch (error: any) {
+      console.error('Error borrowing book:', error);
+      const errorMessage = error.response?.data?.message || 'Erreur lors de l\'emprunt du livre';
+      toast.error(errorMessage);
+    } finally {
+      setBorrowingBookId(null);
+    }
+  };
+
+  const handleReserve = (bookId: number) => {
+    toast.info('La fonctionnalité de réservation sera bientôt disponible');
+  };
 
   const getBookCover = (book: Book): string => {
     if (book.coverUrl && book.coverUrl.startsWith('http')) {
@@ -228,15 +282,15 @@ const Home = () => {
             {books.map((book) => (
               <Grid item xs={12} sm={6} md={4} lg={3} key={book.id}>
                 <Card
-                  component={Link}
-                  to={`/catalogue`}
+                  onClick={() => setSelectedBook(book)}
                   sx={{
                     height: '100%',
-                    textDecoration: 'none',
+                    cursor: 'pointer',
                     transition: 'all 0.3s ease',
                     borderRadius: 2,
                     overflow: 'hidden',
                     border: '1px solid #e7e5e4',
+                    boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
                     '&:hover': {
                       transform: 'translateY(-8px)',
                       boxShadow: '0 12px 24px rgba(120, 53, 15, 0.15)',
@@ -374,6 +428,166 @@ const Home = () => {
           ))}
         </Grid>
       </Box>
+
+      {/* Book Detail Dialog */}
+      <Dialog
+        open={!!selectedBook}
+        onClose={() => setSelectedBook(null)}
+        maxWidth="md"
+        fullWidth
+        PaperProps={{
+          sx: {
+            borderRadius: 2,
+            border: '1px solid #e7e5e4'
+          }
+        }}
+      >
+        {selectedBook && (
+          <>
+            <DialogTitle sx={{ borderBottom: '1px solid #e7e5e4', pb: 2 }}>
+              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <Typography variant="h5" fontWeight="600" sx={{ fontFamily: 'Georgia, serif', color: '#292524' }}>
+                  {selectedBook.title}
+                </Typography>
+                <IconButton onClick={() => setSelectedBook(null)} sx={{ color: '#78716c' }}>
+                  <Close />
+                </IconButton>
+              </Box>
+            </DialogTitle>
+            <DialogContent sx={{ pt: 3 }}>
+              <Grid container spacing={3}>
+                <Grid item xs={12} md={4}>
+                  <CardMedia
+                    component="img"
+                    image={getBookCover(selectedBook)}
+                    alt={selectedBook.title}
+                    sx={{
+                      borderRadius: 2,
+                      maxHeight: 400,
+                      objectFit: 'contain',
+                      boxShadow: '0 4px 12px rgba(0,0,0,0.1)'
+                    }}
+                    onError={(e: React.SyntheticEvent<HTMLImageElement>) => {
+                      e.currentTarget.src = `https://via.placeholder.com/200x300/78350f/fffbeb?text=Book`;
+                    }}
+                  />
+                </Grid>
+                <Grid item xs={12} md={8}>
+                  <Box sx={{ mb: 2 }}>
+                    <Chip
+                      label={getStatusText(selectedBook.availableCopies)}
+                      sx={{
+                        bgcolor: getStatusColor(selectedBook.availableCopies),
+                        color: 'white',
+                        fontWeight: 600,
+                        mr: 1
+                      }}
+                    />
+                    {selectedBook.categories?.map(cat => (
+                      <Chip
+                        key={cat.id}
+                        label={cat.name}
+                        variant="outlined"
+                        size="small"
+                        sx={{ mr: 0.5, borderColor: '#78350f', color: '#78350f' }}
+                      />
+                    ))}
+                  </Box>
+
+                  <Typography variant="h6" sx={{ color: '#57534e', mb: 2 }}>
+                    par {selectedBook.author}
+                  </Typography>
+
+                  <Grid container spacing={2} sx={{ mb: 3 }}>
+                    <Grid item xs={6}>
+                      <Typography variant="body2" fontWeight="600" sx={{ color: '#78350f' }}>ISBN:</Typography>
+                      <Typography variant="body2" sx={{ color: '#57534e' }}>{selectedBook.isbn || 'N/A'}</Typography>
+                    </Grid>
+                    <Grid item xs={6}>
+                      <Typography variant="body2" fontWeight="600" sx={{ color: '#78350f' }}>Éditeur:</Typography>
+                      <Typography variant="body2" sx={{ color: '#57534e' }}>{selectedBook.publisher || 'N/A'}</Typography>
+                    </Grid>
+                    <Grid item xs={6}>
+                      <Typography variant="body2" fontWeight="600" sx={{ color: '#78350f' }}>Année:</Typography>
+                      <Typography variant="body2" sx={{ color: '#57534e' }}>{selectedBook.publicationYear || 'N/A'}</Typography>
+                    </Grid>
+                    <Grid item xs={6}>
+                      <Typography variant="body2" fontWeight="600" sx={{ color: '#78350f' }}>Genre:</Typography>
+                      <Typography variant="body2" sx={{ color: '#57534e' }}>{selectedBook.genre || 'N/A'}</Typography>
+                    </Grid>
+                    <Grid item xs={6}>
+                      <Typography variant="body2" fontWeight="600" sx={{ color: '#78350f' }}>Langue:</Typography>
+                      <Typography variant="body2" sx={{ color: '#57534e' }}>{selectedBook.language || 'N/A'}</Typography>
+                    </Grid>
+                    <Grid item xs={6}>
+                      <Typography variant="body2" fontWeight="600" sx={{ color: '#78350f' }}>Pages:</Typography>
+                      <Typography variant="body2" sx={{ color: '#57534e' }}>{selectedBook.numberOfPages || 'N/A'}</Typography>
+                    </Grid>
+                    <Grid item xs={6}>
+                      <Typography variant="body2" fontWeight="600" sx={{ color: '#78350f' }}>Exemplaires:</Typography>
+                      <Typography variant="body2" sx={{ color: '#57534e' }}>
+                        {selectedBook.availableCopies}/{selectedBook.totalCopies} disponibles
+                      </Typography>
+                    </Grid>
+                  </Grid>
+
+                  {selectedBook.summary && (
+                    <>
+                      <Typography variant="body2" fontWeight="600" gutterBottom sx={{ color: '#78350f' }}>
+                        Résumé:
+                      </Typography>
+                      <Typography variant="body1" sx={{ lineHeight: 1.6, color: '#57534e' }}>
+                        {selectedBook.summary}
+                      </Typography>
+                    </>
+                  )}
+                </Grid>
+              </Grid>
+            </DialogContent>
+            <DialogActions sx={{ borderTop: '1px solid #e7e5e4', p: 2 }}>
+              <Button
+                onClick={() => setSelectedBook(null)}
+                sx={{
+                  color: '#57534e',
+                  '&:hover': { bgcolor: '#f5f5f4' }
+                }}
+              >
+                Fermer
+              </Button>
+              {selectedBook.availableCopies > 0 ? (
+                <Button
+                  variant="contained"
+                  disabled={borrowingBookId === selectedBook.id}
+                  onClick={() => handleBorrow(selectedBook.id)}
+                  startIcon={borrowingBookId === selectedBook.id && <CircularProgress size={16} sx={{ color: 'white' }} />}
+                  sx={{
+                    bgcolor: '#78350f',
+                    '&:hover': { bgcolor: '#92400e' },
+                    '&:disabled': { bgcolor: '#d6d3d1' }
+                  }}
+                >
+                  {borrowingBookId === selectedBook.id ? 'Emprunt en cours...' : 'Emprunter ce livre'}
+                </Button>
+              ) : (
+                <Button
+                  variant="outlined"
+                  onClick={() => handleReserve(selectedBook.id)}
+                  sx={{
+                    borderColor: '#78350f',
+                    color: '#78350f',
+                    '&:hover': {
+                      borderColor: '#92400e',
+                      bgcolor: '#fef3c7'
+                    }
+                  }}
+                >
+                  Réserver ce livre
+                </Button>
+              )}
+            </DialogActions>
+          </>
+        )}
+      </Dialog>
     </Container>
   );
 };
