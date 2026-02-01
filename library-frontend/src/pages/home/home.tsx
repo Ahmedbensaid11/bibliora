@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import {
   Container,
   Typography,
@@ -42,6 +42,8 @@ interface Book {
 }
 
 const Home = () => {
+  const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const { token } = useAuthStore();
   const [books, setBooks] = useState<Book[]>([]);
   const [loading, setLoading] = useState(true);
@@ -74,9 +76,23 @@ const Home = () => {
     fetchBooks();
   }, [token]);
 
+  // Handle bookId from URL params (after login redirect)
+  useEffect(() => {
+    const bookIdParam = searchParams.get('bookId');
+    if (bookIdParam && books.length > 0 && token) {
+      const bookToOpen = books.find(b => b.id === parseInt(bookIdParam));
+      if (bookToOpen) {
+        setSelectedBook(bookToOpen);
+        // Clear the bookId param from URL
+        setSearchParams({});
+      }
+    }
+  }, [books, searchParams, token, setSearchParams]);
+
   const handleBorrow = async (bookId: number) => {
     if (!token) {
-      toast.warning('Veuillez vous connecter pour emprunter un livre');
+      // Redirect to login with return URL and bookId
+      navigate(`/login?returnTo=/home&bookId=${bookId}`);
       return;
     }
 
@@ -107,7 +123,7 @@ const Home = () => {
     }
   };
 
-  const handleReserve = (bookId: number) => {
+  const handleReserve = (_bookId: number) => {
     toast.info('La fonctionnalité de réservation sera bientôt disponible');
   };
 

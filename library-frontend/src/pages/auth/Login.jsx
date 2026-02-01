@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import {
   Box,
   Container,
@@ -32,9 +32,14 @@ import useAuthStore from '../../store/authStore';
 
 const Login = () => {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
   const { login, isLoading } = useAuthStore();
+
+  // Get return URL from query params (for redirect after login)
+  const returnTo = searchParams.get('returnTo') || '/home';
+  const bookId = searchParams.get('bookId');
 
   const [formData, setFormData] = useState({
     usernameOrEmail: '',
@@ -75,7 +80,7 @@ const Login = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
+
     if (!validate()) return;
 
     try {
@@ -83,7 +88,9 @@ const Login = () => {
         email: formData.usernameOrEmail, // This will be transformed to usernameOrEmail in authService
         password: formData.password,
       });
-      navigate('/home');
+      // Redirect to returnTo URL with bookId if present
+      const redirectUrl = bookId ? `${returnTo}?bookId=${bookId}` : returnTo;
+      navigate(redirectUrl);
     } catch (error) {
       console.error('Login error:', error);
     }

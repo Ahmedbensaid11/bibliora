@@ -1,4 +1,5 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import {
   Container,
   Grid,
@@ -40,6 +41,8 @@ const API_URL = 'http://localhost:8080/api';
 
 const Catalogue = () => {
   const theme = useTheme();
+  const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const { token } = useAuthStore();
   const [viewMode, setViewMode] = useState('grid');
   const [searchTerm, setSearchTerm] = useState('');
@@ -129,7 +132,8 @@ const Catalogue = () => {
 
   const handleBorrow = async (bookId) => {
     if (!token) {
-      toast.warning('Veuillez vous connecter pour emprunter un livre');
+      // Redirect to login with return URL and bookId
+      navigate(`/login?returnTo=/catalogue&bookId=${bookId}`);
       return;
     }
 
@@ -187,6 +191,19 @@ const Catalogue = () => {
   useEffect(() => {
     setCurrentPage(1);
   }, [searchTerm, selectedCategory, selectedStatus]);
+
+  // Handle bookId from URL params (after login redirect)
+  useEffect(() => {
+    const bookIdParam = searchParams.get('bookId');
+    if (bookIdParam && books.length > 0 && token) {
+      const bookToOpen = books.find(b => b.id === parseInt(bookIdParam));
+      if (bookToOpen) {
+        setSelectedBook(bookToOpen);
+        // Clear the bookId param from URL
+        setSearchParams({});
+      }
+    }
+  }, [books, searchParams, token, setSearchParams]);
 
   if (loading) {
     return (
