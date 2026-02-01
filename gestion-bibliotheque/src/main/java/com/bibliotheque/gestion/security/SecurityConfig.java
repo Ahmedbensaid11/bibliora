@@ -117,8 +117,13 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.PUT, "/api/books/**").hasRole("ADMIN")
                         .requestMatchers(HttpMethod.DELETE, "/api/books/**").hasRole("ADMIN")
 
-                        // Endpoints pour lecteurs et admins
-                        .requestMatchers(HttpMethod.GET, "/api/books/**").hasAnyRole("LECTEUR", "ADMIN")
+                        // Public endpoints - allow guest browsing
+                        .requestMatchers(HttpMethod.GET, "/api/books").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/books/**").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/categories").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/categories/**").permitAll()
+
+                        // Endpoints pour lecteurs et admins (require login)
                         .requestMatchers("/api/emprunts/**").hasAnyRole("LECTEUR", "ADMIN")
 
                         // Tous les autres endpoints nécessitent une authentification

@@ -56,32 +56,17 @@ const router = createBrowserRouter([
       </PublicRoute>
     ),
   },
+  // Public routes - accessible without login
   {
-    element: (
-      <ProtectedRoute>
-        <MainLayout />
-      </ProtectedRoute>
-    ),
+    element: <MainLayout />,
     children: [
       {
         path: '/home',
         element: <Home />,
       },
       {
-        path: '/dashboard',
-        element: <Dashboard />,
-      },
-      {
         path: '/catalogue',
         element: <Catalogue />,
-      },
-      {
-        path: '/emprunts',
-        element: <MesEmprunts />,
-      },
-      {
-        path: '/historique',
-        element: <Historique />,
       },
       {
         path: '/about',
@@ -90,6 +75,28 @@ const router = createBrowserRouter([
       {
         path: '/contact',
         element: <Contact />,
+      },
+    ],
+  },
+  // Protected routes - require login
+  {
+    element: (
+      <ProtectedRoute>
+        <MainLayout />
+      </ProtectedRoute>
+    ),
+    children: [
+      {
+        path: '/dashboard',
+        element: <Dashboard />,
+      },
+      {
+        path: '/emprunts',
+        element: <MesEmprunts />,
+      },
+      {
+        path: '/historique',
+        element: <Historique />,
       },
       {
         path: '/profile',
