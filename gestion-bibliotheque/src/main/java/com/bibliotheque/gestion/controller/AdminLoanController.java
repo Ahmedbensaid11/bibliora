@@ -42,6 +42,7 @@ public class AdminLoanController {
     private final LoanRepository loanRepository;
     private final UserRepository userRepository;
     private final BookRepository bookRepository;
+    private final com.bibliotheque.gestion.service.LoanService loanService;
 
     /**
      * Get all loans with pagination and filters
@@ -371,6 +372,26 @@ public class AdminLoanController {
             );
         } catch (Exception e) {
             log.error("Error extending loan: {}", e.getMessage());
+            return ResponseEntity.badRequest()
+                    .body(new DataResponse<>(false, e.getMessage(), null));
+        }
+    }
+
+    /**
+     * Activate a pending delivery loan
+     * PUT /api/admin/loans/{id}/activate
+     */
+    @PutMapping("/{id}/activate")
+    public ResponseEntity<DataResponse<AdminLoanDTO>> activateLoan(@PathVariable Long id) {
+        try {
+            Loan activatedLoan = loanService.activateLoan(id);
+            AdminLoanDTO loanDTO = convertToAdminDTO(activatedLoan);
+
+            return ResponseEntity.ok(
+                    new DataResponse<>(true, "Loan activated successfully", loanDTO)
+            );
+        } catch (Exception e) {
+            log.error("Error activating loan: {}", e.getMessage());
             return ResponseEntity.badRequest()
                     .body(new DataResponse<>(false, e.getMessage(), null));
         }

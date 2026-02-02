@@ -47,9 +47,9 @@ public class Loan {
     private LocalDate returnDate;
 
     @Enumerated(EnumType.STRING)
-    @Column(nullable = false, length = 20)
+    @Column(nullable = false, length = 30)
     @Builder.Default
-    private LoanStatus status = LoanStatus.ACTIVE;
+    private LoanStatus status = LoanStatus.PENDING_DELIVERY;
 
     @Column(name = "late_fee", precision = 10, scale = 2)
     @Builder.Default
@@ -57,6 +57,19 @@ public class Loan {
 
     @Column(name = "notes", length = 500)
     private String notes;
+
+    // Delivery information fields
+    @Column(name = "phone", length = 20)
+    private String phone;
+
+    @Column(name = "delivery_address", length = 500)
+    private String deliveryAddress;
+
+    @Column(name = "delivery_notes", length = 500)
+    private String deliveryNotes;
+
+    @Column(name = "preferred_pickup_date")
+    private LocalDate preferredPickupDate;
 
     @CreationTimestamp
     @Column(name = "created_at", nullable = false, updatable = false)
@@ -72,7 +85,7 @@ public class Loan {
      * Check if the loan is currently overdue
      */
     public boolean isOverdue() {
-        if (status == LoanStatus.RETURNED || status == LoanStatus.CANCELLED) {
+        if (status == LoanStatus.RETURNED || status == LoanStatus.CANCELLED || status == LoanStatus.PENDING_DELIVERY) {
             return false;
         }
         return LocalDate.now().isAfter(dueDate);

@@ -5,6 +5,7 @@ package com.bibliotheque.gestion.entity;
  */
 public enum LoanStatus {
 
+    PENDING_DELIVERY("À livrer", "En attente de livraison au lecteur"),
     ACTIVE("En cours", "Le livre est actuellement emprunté"),
     OVERDUE("En retard", "La date de retour prévue est dépassée"),
     RETURNED("Retourné", "Le livre a été retourné"),

@@ -2,12 +2,23 @@ import axiosInstance from './axios.config';
 
 const loanService = {
   /**
-   * Emprunter un livre
+   * Créer une demande d'emprunt avec informations de livraison
    * @param {number} bookId - ID du livre à emprunter
+   * @param {Object} deliveryInfo - Informations de livraison
+   * @param {string} deliveryInfo.phone - Numéro de téléphone
+   * @param {string} deliveryInfo.deliveryAddress - Adresse de livraison
+   * @param {string} deliveryInfo.deliveryNotes - Notes de livraison (optionnel)
+   * @param {string} deliveryInfo.preferredPickupDate - Date de retrait souhaitée (optionnel)
    * @returns {Promise} Données de l'emprunt créé
    */
-  borrowBook: async (bookId) => {
-    const response = await axiosInstance.post('/loans', { bookId });
+  borrowBook: async (bookId, deliveryInfo = {}) => {
+    const response = await axiosInstance.post('/loans', {
+      bookId,
+      phone: deliveryInfo.phone,
+      deliveryAddress: deliveryInfo.deliveryAddress,
+      deliveryNotes: deliveryInfo.deliveryNotes,
+      preferredPickupDate: deliveryInfo.preferredPickupDate
+    });
     return response.data;
   },
 
@@ -180,6 +191,16 @@ const loanService = {
    */
   adminReturnBook: async (loanId, notes = null) => {
     const response = await axiosInstance.put(`/loans/admin/${loanId}/return`, { notes });
+    return response.data;
+  },
+
+  /**
+   * Activer un emprunt en attente de livraison (admin)
+   * @param {number} loanId - ID de l'emprunt
+   * @returns {Promise} Données de l'emprunt activé
+   */
+  activateLoan: async (loanId) => {
+    const response = await axiosInstance.put(`/admin/loans/${loanId}/activate`);
     return response.data;
   },
 };
