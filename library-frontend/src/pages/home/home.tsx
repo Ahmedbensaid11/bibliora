@@ -21,6 +21,8 @@ import { LibraryBooks, ArrowForward, AutoStories, MenuBook, Close } from '@mui/i
 import { toast } from 'react-toastify';
 import useAuthStore from '../../store/authStore';
 import loanService from '../../api/loanService';
+// @ts-ignore
+import LoanRequestModal from '../../components/LoanRequestModal';
 
 const API_URL = 'http://localhost:8080/api';
 
@@ -49,6 +51,11 @@ const Home = () => {
   const [loading, setLoading] = useState(true);
   const [selectedBook, setSelectedBook] = useState<Book | null>(null);
   const [borrowingBookId, setBorrowingBookId] = useState<number | null>(null);
+
+  // Loan modal state
+  const [showLoanModal, setShowLoanModal] = useState(false);
+  const [bookForLoan, setBookForLoan] = useState<Book | null>(null);
+  const [isSubmittingLoan, setIsSubmittingLoan] = useState(false);
 
   // Fetch featured books
   useEffect(() => {
@@ -89,38 +96,70 @@ const Home = () => {
     }
   }, [books, searchParams, token, setSearchParams]);
 
-  const handleBorrow = async (bookId: number) => {
+  const handleBorrow = (bookId: number) => {
     if (!token) {
       // Redirect to login with return URL and bookId
       navigate(`/login?returnTo=/home&bookId=${bookId}`);
       return;
     }
 
-    setBorrowingBookId(bookId);
+    // Find the book and open the loan modal
+    const book = books.find(b => b.id === bookId) || selectedBook;
+    if (book) {
+      setBookForLoan(book);
+      setShowLoanModal(true);
+    }
+  };
+
+  const handleLoanSubmit = async (formData: {
+    phone: string;
+    deliveryAddress: string;
+    deliveryNotes: string;
+    preferredPickupDate: string | null;
+  }) => {
+    if (!bookForLoan) return;
+
+    setIsSubmittingLoan(true);
+    setBorrowingBookId(bookForLoan.id);
+
     try {
-      await loanService.borrowBook(bookId);
-      toast.success('Livre emprunté avec succès !');
+      await loanService.borrowBook(bookForLoan.id, {
+        phone: formData.phone,
+        address: formData.deliveryAddress,
+        notes: formData.deliveryNotes,
+        pickupDate: formData.preferredPickupDate
+      });
+
+      toast.success('Demande d\'emprunt soumise avec succès ! Vous recevrez un email de confirmation.');
 
       // Update book's available copies locally
       setBooks(prevBooks =>
         prevBooks.map(book =>
-          book.id === bookId
+          book.id === bookForLoan.id
             ? { ...book, availableCopies: book.availableCopies - 1 }
             : book
         )
       );
 
       // Update selected book if open
-      if (selectedBook?.id === bookId) {
+      if (selectedBook?.id === bookForLoan.id) {
         setSelectedBook(prev => prev ? { ...prev, availableCopies: prev.availableCopies - 1 } : null);
       }
+
+      handleCloseLoanModal();
     } catch (error: any) {
-      console.error('Error borrowing book:', error);
-      const errorMessage = error.response?.data?.message || 'Erreur lors de l\'emprunt du livre';
+      console.error('Error submitting loan request:', error);
+      const errorMessage = error.response?.data?.message || 'Erreur lors de la soumission de la demande';
       toast.error(errorMessage);
     } finally {
+      setIsSubmittingLoan(false);
       setBorrowingBookId(null);
     }
+  };
+
+  const handleCloseLoanModal = () => {
+    setShowLoanModal(false);
+    setBookForLoan(null);
   };
 
   const handleReserve = (_bookId: number) => {
@@ -604,6 +643,15 @@ const Home = () => {
           </>
         )}
       </Dialog>
+
+      {/* Loan Request Modal */}
+      <LoanRequestModal
+        open={showLoanModal}
+        onClose={handleCloseLoanModal}
+        book={bookForLoan}
+        onSubmit={handleLoanSubmit}
+        isLoading={isSubmittingLoan}
+      />
     </Container>
   );
 };

@@ -59,6 +59,8 @@ import AssignmentLate from '@mui/icons-material/AssignmentLate';
 import AttachMoney from '@mui/icons-material/AttachMoney';
 import Close from '@mui/icons-material/Close';
 import MoreTime from '@mui/icons-material/MoreTime';
+import LocalShipping from '@mui/icons-material/LocalShipping';
+import PlayArrow from '@mui/icons-material/PlayArrow';
 
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
@@ -437,7 +439,7 @@ const AdminLoans = () => {
   const handleDeleteLoan = async () => {
     try {
       const response = await api.delete(`/admin/loans/${selectedLoan.id}`);
-      
+
       if (response.data.success) {
         showSnackbar('Prêt supprimé avec succès', 'success');
         loadLoans();
@@ -445,7 +447,23 @@ const AdminLoans = () => {
       }
     } catch (error) {
       showSnackbar(
-        error.response?.data?.message || 'Erreur lors de la suppression', 
+        error.response?.data?.message || 'Erreur lors de la suppression',
+        'error'
+      );
+    }
+  };
+
+  const handleActivateLoan = async (loanId) => {
+    try {
+      const response = await api.put(`/admin/loans/${loanId}/activate`);
+
+      if (response.data.success) {
+        showSnackbar('Prêt activé avec succès - Le livre est maintenant emprunté', 'success');
+        loadLoans();
+      }
+    } catch (error) {
+      showSnackbar(
+        error.response?.data?.message || 'Erreur lors de l\'activation du prêt',
         'error'
       );
     }
@@ -494,18 +512,22 @@ const AdminLoans = () => {
         setDateFilter('all');
         break;
       case 1:
-        setStatusFilter('ACTIVE');
+        setStatusFilter('PENDING_DELIVERY');
         setDateFilter('all');
         break;
       case 2:
+        setStatusFilter('ACTIVE');
+        setDateFilter('all');
+        break;
+      case 3:
         setDateFilter('overdue');
         setStatusFilter('ACTIVE');
         break;
-      case 3:
+      case 4:
         setStatusFilter('RETURNED');
         setDateFilter('all');
         break;
-      case 4:
+      case 5:
         setStatusFilter('CANCELLED');
         setDateFilter('all');
         break;
@@ -540,7 +562,9 @@ const AdminLoans = () => {
   };
 
   const getStatusColor = (status, dueDate) => {
-    if (status === 'ACTIVE') {
+    if (status === 'PENDING_DELIVERY') {
+      return 'warning';
+    } else if (status === 'ACTIVE') {
       const daysRemaining = getDaysRemaining(dueDate, status);
       if (daysRemaining <= 0) return 'error';
       if (daysRemaining <= 3) return 'warning';
@@ -555,7 +579,9 @@ const AdminLoans = () => {
   };
 
   const getStatusText = (status, dueDate) => {
-    if (status === 'ACTIVE') {
+    if (status === 'PENDING_DELIVERY') {
+      return 'À livrer';
+    } else if (status === 'ACTIVE') {
       const daysRemaining = getDaysRemaining(dueDate, status);
       if (daysRemaining <= 0) return 'En retard';
       return `${daysRemaining} jour(s) restant(s)`;
@@ -570,6 +596,8 @@ const AdminLoans = () => {
 
   const getStatusIcon = (status) => {
     switch (status) {
+      case 'PENDING_DELIVERY':
+        return <LocalShipping />;
       case 'ACTIVE':
         return <EventAvailable />;
       case 'RETURNED':
@@ -842,6 +870,24 @@ const AdminLoans = () => {
                 iconPosition="start"
               />
               <Tab
+                icon={<LocalShipping />}
+                label={
+                  <Badge
+                    badgeContent={stats?.pendingDeliveryLoans || 0}
+                    color="warning"
+                    sx={{
+                      '& .MuiBadge-badge': {
+                        bgcolor: '#d97706',
+                        color: 'white'
+                      }
+                    }}
+                  >
+                    À livrer
+                  </Badge>
+                }
+                iconPosition="start"
+              />
+              <Tab
                 icon={<EventAvailable />}
                 label="Actifs"
                 iconPosition="start"
@@ -849,8 +895,8 @@ const AdminLoans = () => {
               <Tab
                 icon={<AssignmentLate />}
                 label={
-                  <Badge 
-                    badgeContent={stats?.overdueLoans || 0} 
+                  <Badge
+                    badgeContent={stats?.overdueLoans || 0}
                     color="error"
                     sx={{
                       '& .MuiBadge-badge': {
@@ -1307,33 +1353,51 @@ const AdminLoans = () => {
                           
                           <TableCell align="center">
                             <Box className="action-buttons" sx={{ opacity: 0.7, transition: 'opacity 0.2s' }}>
+                              {loan.status === 'PENDING_DELIVERY' && (
+                                <Tooltip title="Activer le prêt (livre livré)">
+                                  <IconButton
+                                    size="small"
+                                    onClick={() => handleActivateLoan(loan.id)}
+                                    sx={{
+                                      mr: 1,
+                                      color: designSystem.colors.status.available.text,
+                                      '&:hover': {
+                                        bgcolor: designSystem.colors.status.available.bg
+                                      }
+                                    }}
+                                  >
+                                    <PlayArrow />
+                                  </IconButton>
+                                </Tooltip>
+                              )}
+
                               {loan.status === 'ACTIVE' && (
                                 <>
                                   <Tooltip title="Enregistrer retour">
                                     <IconButton
                                       size="small"
                                       onClick={() => openDialog('return', loan)}
-                                      sx={{ 
+                                      sx={{
                                         mr: 1,
                                         color: designSystem.colors.status.available.text,
-                                        '&:hover': { 
-                                          bgcolor: designSystem.colors.status.available.bg 
+                                        '&:hover': {
+                                          bgcolor: designSystem.colors.status.available.bg
                                         }
                                       }}
                                     >
                                       <AssignmentReturned />
                                     </IconButton>
                                   </Tooltip>
-                                  
+
                                   <Tooltip title="Prolonger prêt">
                                     <IconButton
                                       size="small"
                                       onClick={() => openDialog('extend', loan)}
-                                      sx={{ 
+                                      sx={{
                                         mr: 1,
                                         color: designSystem.colors.primary.main,
-                                        '&:hover': { 
-                                          bgcolor: designSystem.colors.background.hover 
+                                        '&:hover': {
+                                          bgcolor: designSystem.colors.background.hover
                                         }
                                       }}
                                     >
@@ -1342,15 +1406,15 @@ const AdminLoans = () => {
                                   </Tooltip>
                                 </>
                               )}
-                              
+
                               <Tooltip title="Supprimer">
                                 <IconButton
                                   size="small"
                                   onClick={() => openDialog('delete', loan)}
-                                  sx={{ 
+                                  sx={{
                                     color: designSystem.colors.status.unavailable.text,
-                                    '&:hover': { 
-                                      bgcolor: designSystem.colors.status.unavailable.bg 
+                                    '&:hover': {
+                                      bgcolor: designSystem.colors.status.unavailable.bg
                                     }
                                   }}
                                 >

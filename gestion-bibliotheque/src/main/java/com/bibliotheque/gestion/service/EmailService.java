@@ -121,6 +121,43 @@ public class EmailService {
     }
 
     /**
+     * Envoie une confirmation de demande d'emprunt
+     */
+    @Async
+    public void sendLoanRequestConfirmation(User user, String bookTitle, java.time.LocalDate preferredPickupDate) {
+        try {
+            SimpleMailMessage message = new SimpleMailMessage();
+            message.setFrom(fromEmail);
+            message.setTo(user.getEmail());
+            message.setSubject("Confirmation de votre demande d'emprunt");
+
+            String pickupInfo = preferredPickupDate != null
+                ? "Date de retrait souhaitée: " + preferredPickupDate.toString()
+                : "Aucune date de retrait spécifiée";
+
+            message.setText(String.format(
+                    "Bonjour %s %s,\n\n" +
+                            "Votre demande d'emprunt a été enregistrée avec succès!\n\n" +
+                            "Livre demandé: %s\n" +
+                            "%s\n\n" +
+                            "Votre demande est en attente de traitement. Vous recevrez un email de confirmation " +
+                            "lorsque le livre sera prêt à être récupéré.\n\n" +
+                            "Cordialement,\n" +
+                            "L'équipe de la bibliothèque",
+                    user.getFirstName(),
+                    user.getLastName(),
+                    bookTitle,
+                    pickupInfo
+            ));
+
+            mailSender.send(message);
+            logger.info("Email de confirmation de demande d'emprunt envoyé à: {}", user.getEmail());
+        } catch (Exception e) {
+            logger.error("Erreur lors de l'envoi de l'email de confirmation à: {}", user.getEmail(), e);
+        }
+    }
+
+    /**
      * Envoie une notification de retard
      */
     @Async

@@ -3,6 +3,7 @@ package com.bibliotheque.gestion.controller;
 import com.bibliotheque.gestion.dto.ApiResponse;
 import com.bibliotheque.gestion.dto.DataResponse;
 import com.bibliotheque.gestion.dto.ListResponse;
+import com.bibliotheque.gestion.dto.LoanRequestDTO;
 import com.bibliotheque.gestion.dto.PageResponse;
 import com.bibliotheque.gestion.entity.Loan;
 import com.bibliotheque.gestion.entity.LoanStatus;
@@ -22,6 +23,7 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
 
@@ -38,22 +40,29 @@ public class LoanController {
     // ============ User Endpoints ============
 
     /**
-     * Emprunter un livre
+     * Créer une demande d'emprunt avec informations de livraison
      * POST /api/loans
      */
     @PostMapping
     @PreAuthorize("isAuthenticated()")
-    @Operation(summary = "Emprunter un livre", description = "Crée un nouvel emprunt pour l'utilisateur connecté")
-    public ResponseEntity<DataResponse<Loan>> borrowBook(@RequestBody BorrowRequest request) {
+    @Operation(summary = "Demander un emprunt", description = "Crée une demande d'emprunt avec statut 'À livrer'")
+    public ResponseEntity<DataResponse<Loan>> createLoanRequest(@RequestBody BorrowRequest request) {
         Long userId = getCurrentUserId();
-        log.info("User {} borrowing book {}", userId, request.getBookId());
+        log.info("User {} requesting loan for book {}", userId, request.getBookId());
 
         try {
-            Loan loan = loanService.borrowBook(userId, request.getBookId());
+            LoanRequestDTO dto = new LoanRequestDTO(
+                    request.getBookId(),
+                    request.getPhone(),
+                    request.getDeliveryAddress(),
+                    request.getDeliveryNotes(),
+                    request.getPreferredPickupDate()
+            );
+            Loan loan = loanService.createLoanRequest(userId, dto);
             return ResponseEntity.status(HttpStatus.CREATED)
-                    .body(new DataResponse<>(true, "Livre emprunté avec succès", loan));
+                    .body(new DataResponse<>(true, "Demande d'emprunt créée avec succès", loan));
         } catch (RuntimeException e) {
-            log.error("Error borrowing book: {}", e.getMessage());
+            log.error("Error creating loan request: {}", e.getMessage());
             return ResponseEntity.badRequest()
                     .body(new DataResponse<>(false, e.getMessage(), null));
         }
@@ -382,9 +391,25 @@ public class LoanController {
 
     public static class BorrowRequest {
         private Long bookId;
+        private String phone;
+        private String deliveryAddress;
+        private String deliveryNotes;
+        private LocalDate preferredPickupDate;
 
         public Long getBookId() { return bookId; }
         public void setBookId(Long bookId) { this.bookId = bookId; }
+
+        public String getPhone() { return phone; }
+        public void setPhone(String phone) { this.phone = phone; }
+
+        public String getDeliveryAddress() { return deliveryAddress; }
+        public void setDeliveryAddress(String deliveryAddress) { this.deliveryAddress = deliveryAddress; }
+
+        public String getDeliveryNotes() { return deliveryNotes; }
+        public void setDeliveryNotes(String deliveryNotes) { this.deliveryNotes = deliveryNotes; }
+
+        public LocalDate getPreferredPickupDate() { return preferredPickupDate; }
+        public void setPreferredPickupDate(LocalDate preferredPickupDate) { this.preferredPickupDate = preferredPickupDate; }
     }
 
     public static class ReturnRequest {

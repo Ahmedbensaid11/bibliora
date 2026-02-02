@@ -1,5 +1,6 @@
 package com.bibliotheque.gestion.service;
 
+import com.bibliotheque.gestion.dto.LoanRequestDTO;
 import com.bibliotheque.gestion.entity.Book;
 import com.bibliotheque.gestion.entity.Loan;
 import com.bibliotheque.gestion.entity.LoanStatus;
@@ -28,6 +29,7 @@ public class LoanService {
     private final LoanRepository loanRepository;
     private final BookRepository bookRepository;
     private final UserRepository userRepository;
+    private final EmailService emailService;
 
     // Configuration constants
     private static final int DEFAULT_LOAN_DURATION_DAYS = 14;
@@ -99,6 +101,117 @@ public class LoanService {
         Loan savedLoan = loanRepository.save(loan);
         log.info("Loan created successfully - ID: {}, Book: '{}', User: '{}'",
                 savedLoan.getId(), book.getTitle(), user.getUsername());
+
+        return savedLoan;
+    }
+
+    /**
+     * Create a loan request with delivery information (status: PENDING_DELIVERY)
+     * Book copies are NOT decremented until admin activates the loan
+     */
+    public Loan createLoanRequest(Long userId, LoanRequestDTO request) {
+        log.info("Processing loan request - User: {}, Book: {}", userId, request.bookId());
+
+        // Validate user
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new RuntimeException("User not found with ID: " + userId));
+
+        // Validate book
+        Book book = bookRepository.findById(request.bookId())
+                .orElseThrow(() -> new RuntimeException("Book not found with ID: " + request.bookId()));
+
+        // Check if user already has this book (active or pending)
+        if (loanRepository.hasActiveBookLoan(userId, request.bookId())) {
+            throw new RuntimeException("User already has an active or pending loan for this book");
+        }
+
+        // Check user's loan limit (including pending)
+        int currentLoans = loanRepository.countCurrentLoansForUser(userId);
+        if (currentLoans >= MAX_LOANS_PER_USER) {
+            throw new RuntimeException("User has reached maximum loan limit of " + MAX_LOANS_PER_USER + " books");
+        }
+
+        // Check book availability
+        if (book.getAvailableCopies() <= 0) {
+            throw new RuntimeException("No copies available for this book");
+        }
+
+        // Create the loan request with PENDING_DELIVERY status
+        LocalDate borrowDate = LocalDate.now();
+        LocalDate dueDate = borrowDate.plusDays(DEFAULT_LOAN_DURATION_DAYS);
+
+        Loan loan = Loan.builder()
+                .user(user)
+                .book(book)
+                .borrowDate(borrowDate)
+                .dueDate(dueDate)
+                .status(LoanStatus.PENDING_DELIVERY)
+                .phone(request.phone())
+                .deliveryAddress(request.deliveryAddress())
+                .deliveryNotes(request.deliveryNotes())
+                .preferredPickupDate(request.preferredPickupDate())
+                .build();
+
+        Loan savedLoan = loanRepository.save(loan);
+        log.info("Loan request created - ID: {}, Book: '{}', User: '{}', Status: PENDING_DELIVERY",
+                savedLoan.getId(), book.getTitle(), user.getUsername());
+
+        // Send email notification to user
+        try {
+            emailService.sendLoanRequestConfirmation(user, book.getTitle(), request.preferredPickupDate());
+        } catch (Exception e) {
+            log.error("Failed to send loan request confirmation email", e);
+        }
+
+        return savedLoan;
+    }
+
+    /**
+     * Activate a pending loan (admin action) - changes status to ACTIVE and decrements book copies
+     */
+    public Loan activateLoan(Long loanId) {
+        log.info("Activating loan ID: {}", loanId);
+
+        Loan loan = loanRepository.findById(loanId)
+                .orElseThrow(() -> new RuntimeException("Loan not found with ID: " + loanId));
+
+        if (loan.getStatus() != LoanStatus.PENDING_DELIVERY) {
+            throw new RuntimeException("Can only activate loans with PENDING_DELIVERY status. Current status: " + loan.getStatus());
+        }
+
+        Book book = loan.getBook();
+
+        // Check book availability before activation
+        if (book.getAvailableCopies() <= 0) {
+            throw new RuntimeException("No copies available for this book");
+        }
+
+        // Update loan status
+        loan.setStatus(LoanStatus.ACTIVE);
+        loan.setBorrowDate(LocalDate.now()); // Reset borrow date to activation date
+        loan.setDueDate(LocalDate.now().plusDays(DEFAULT_LOAN_DURATION_DAYS));
+
+        // Decrement available copies
+        book.setAvailableCopies(book.getAvailableCopies() - 1);
+        if (book.getAvailableCopies() == 0) {
+            book.setStatus(Book.BookStatus.OUT_OF_STOCK);
+        }
+        bookRepository.save(book);
+
+        Loan savedLoan = loanRepository.save(loan);
+        log.info("Loan activated - ID: {}, Book: '{}', User: '{}'",
+                loanId, book.getTitle(), loan.getUser().getUsername());
+
+        // Send email notification about activation
+        try {
+            emailService.sendBorrowNotification(
+                    loan.getUser(),
+                    book.getTitle(),
+                    savedLoan.getDueDate().toString()
+            );
+        } catch (Exception e) {
+            log.error("Failed to send loan activation email", e);
+        }
 
         return savedLoan;
     }
