@@ -123,6 +123,9 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.GET, "/api/categories").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/categories/**").permitAll()
 
+                        // Chatbot endpoints - public access with optional authentication
+                        .requestMatchers("/api/chatbot/**").permitAll()
+
                         // Endpoints pour lecteurs et admins (require login)
                         .requestMatchers("/api/emprunts/**").hasAnyRole("LECTEUR", "ADMIN")
 
